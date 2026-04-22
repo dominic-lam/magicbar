@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>{{LAUNCHD_LABEL}}</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>{{INSTALL_DIR}}/bin/battery_alert.sh</string>
+    </array>
+
+    <!-- Every 15 minutes. -->
+    <key>StartInterval</key>
+    <integer>900</integer>
+
+    <!-- Also fire once when the agent is first loaded / at login. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Stdout and stderr go to the same log so ordering is preserved. -->
+    <key>StandardOutPath</key>
+    <string>{{HOME}}/.magicbar/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{HOME}}/.magicbar/launchd.log</string>
+</dict>
+</plist>

@@ -1,0 +1,54 @@
+#!/bin/bash
+# <xbar.title>magicbar</xbar.title>
+# <xbar.author>Dominic Lam</xbar.author>
+# <xbar.desc>Shows Magic Mouse battery % in the macOS menu bar</xbar.desc>
+#
+# Refresh interval is encoded in the filename: .5m. → SwiftBar re-runs this
+# plugin every 5 minutes. Rename to .30s., .1h., etc. to change the cadence.
+#
+# {{INSTALL_DIR}} is substituted by install.sh with the absolute path to the
+# magicbar repo, so the plugin can source config.sh and lib/read_battery.sh
+# from a known location even though it lives in SwiftBar's plugins folder.
+
+set -euo pipefail
+
+REPO_ROOT="{{INSTALL_DIR}}"
+
+# shellcheck source=../config.sh
+source "$REPO_ROOT/config.sh"
+# shellcheck source=../lib/read_battery.sh
+source "$REPO_ROOT/lib/read_battery.sh"
+
+# --- Read battery for the configured menu bar device ---
+BATTERY=$(read_battery_percent "$MENU_BAR_DEVICE_PRODUCT_ID" || true)
+
+# --- Device disconnected path ---
+# Render a neutral placeholder instead of an error — users see "🖱️ —" and
+# understand the device is simply not present, not that something broke.
+if [[ -z "${BATTERY:-}" ]]; then
+    echo "$MENU_BAR_DEVICE_ICON —"
+    echo "---"
+    echo "Device not detected"
+    echo "Refresh | refresh=true"
+    exit 0
+fi
+
+# --- Color logic ---
+# ≤10%      → red   (urgent)
+# 11–20%    → orange (caution)
+# >20%      → default menu bar text color (no color param)
+LINE="$MENU_BAR_DEVICE_ICON ${BATTERY}%"
+if (( BATTERY <= 10 )); then
+    LINE="${LINE} | color=red"
+elif (( BATTERY <= 20 )); then
+    LINE="${LINE} | color=orange"
+fi
+
+# --- Menu bar line + dropdown ---
+# SwiftBar renders line 1 in the menu bar; everything after `---` is the
+# dropdown shown on click. `refresh=true` forces a re-run on click instead
+# of waiting for the 5-minute timer.
+echo "$LINE"
+echo "---"
+echo "Magic Mouse: ${BATTERY}%"
+echo "Refresh | refresh=true"
