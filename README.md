@@ -6,6 +6,8 @@
 
 magicbar reads Apple peripheral battery levels from the macOS I/O Kit registry and surfaces them two ways: a **SwiftBar menu bar icon** that shows the current percentage (color-coded as it drains), and a **launchd-scheduled notifier** that fires a macOS notification each time the battery crosses a configured threshold (20%, 15%, 10%, then every integer below). Both consumers share a single battery-read library, so there's exactly one place to fix if Apple changes the IOKit schema.
 
+![Menu bar icon showing mouse battery percentage](docs/menubar.png)
+
 ## Install
 
 ```

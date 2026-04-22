@@ -15,3 +15,6 @@ Icon?
 # Local state — runtime files should never be tracked
 *.log
 .magicbar/
+
+# Machine-specific migration notes (decommissioning the ad-hoc install)
+MIGRATION.md
