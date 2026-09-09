@@ -42,9 +42,10 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 ### Changed
 - Alerts default to the Hero sound.
 - The notification image uses the device's own symbol, so a keyboard alert no longer shows a
-  mouse, and centres the glyph and level bar as a group.
-- The charging bolt sits in the middle of the menu bar gauge, knocked out of it so it reads
-  against both the filled and empty parts.
+  mouse, and the symbol is centred on the tile with the level moved to a strip along the
+  bottom edge.
+- The charging bolt sits white in the middle of the menu bar gauge, legible against every fill
+  colour and against the empty track.
 - Charging appears immediately. The app now listens for IOKit's own notifications rather than
   waiting for a poll, and the poll itself dropped from 60 seconds to 5.
 - Threshold labels say what they mean: "Show battery level in menu bar when below" and

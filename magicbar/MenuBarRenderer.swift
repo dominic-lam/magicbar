@@ -70,7 +70,7 @@ enum MenuBarRenderer {
         let bolt: NSImage? = device.isCharging
             ? Self.symbol(named: ["bolt.fill", "bolt"],
                           configuration: NSImage.SymbolConfiguration(pointSize: fontSize, weight: .black)
-                             .applying(.init(paletteColors: [nsColor])),
+                             .applying(.init(paletteColors: [.white])),
                           description: "charging")
             : nil
 
@@ -131,14 +131,13 @@ enum MenuBarRenderer {
                              xRadius: radius, yRadius: radius).fill()
             }
             if let bolt {
-                // Punched out of the bar rather than laid on top: a solid glyph in the fill
-                // colour would vanish against the filled part of the gauge.
+                // White, drawn on top. It was knocked out of the bar before, which shows the
+                // menu bar through the glyph — dark on a green fill, and nearly invisible
+                // against the unfilled track when the reading is low. White reads against
+                // every fill colour and against the track.
                 let b = boltSize
-                let boltRect = NSRect(x: track.midX - b.width / 2, y: track.midY - b.height / 2,
-                                      width: b.width, height: b.height)
-                NSGraphicsContext.current?.compositingOperation = .destinationOut
-                bolt.draw(in: boltRect)
-                NSGraphicsContext.current?.compositingOperation = .sourceOver
+                bolt.draw(in: NSRect(x: track.midX - b.width / 2, y: track.midY - b.height / 2,
+                                     width: b.width, height: b.height))
             }
 
             x += gaugeWidth + gap
@@ -175,8 +174,8 @@ enum MenuBarRenderer {
                            description: device.shortName)
         let bolt: NSImage? = charging
             ? symbol(named: ["bolt.fill", "bolt"],
-                     configuration: NSImage.SymbolConfiguration(pointSize: 48 * u, weight: .bold)
-                        .applying(.init(paletteColors: [tint.blended(withFraction: 0.35, of: .black) ?? tint])),
+                     configuration: NSImage.SymbolConfiguration(pointSize: 30 * u, weight: .bold)
+                        .applying(.init(paletteColors: [tint.blended(withFraction: 0.45, of: .black) ?? tint])),
                      description: "charging")
             : nil
 
@@ -185,36 +184,37 @@ enum MenuBarRenderer {
             NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: size, height: size),
                          xRadius: 56 * u, yRadius: 56 * u).fill()
 
-            // Symbol and bar are centred as a group, not individually. Centring the symbol on
-            // its own and hanging the bar underneath left the pair sitting low, which is what
-            // made the old tile look off-centre.
-            let barW = 128 * u, barH = 20 * u, gap = 22 * u
-            let glyphSize = glyph?.size ?? NSSize(width: 96 * u, height: 96 * u)
-            let groupHeight = glyphSize.height + gap + barH
-            let groupBottom = (size - groupHeight) / 2
-
-            let barRect = NSRect(x: (size - barW) / 2, y: groupBottom, width: barW, height: barH)
-            let glyphRect = NSRect(x: (size - glyphSize.width) / 2,
-                                   y: groupBottom + barH + gap,
+            // The glyph is centred on the tile, full stop. An earlier version centred the
+            // glyph and the level bar together as a group, which is arithmetically centred
+            // and looks wrong: the eye reads the glyph as the subject, so pairing it with a
+            // bar underneath pushes the thing you actually look at above the middle.
+            let glyphSize = glyph?.size ?? NSSize(width: 110 * u, height: 110 * u)
+            glyph?.draw(in: NSRect(x: (size - glyphSize.width) / 2,
+                                   y: (size - glyphSize.height) / 2,
                                    width: glyphSize.width,
-                                   height: glyphSize.height)
+                                   height: glyphSize.height))
 
-            glyph?.draw(in: glyphRect)
-
+            // The level rides along the bottom edge like a progress strip, so it never
+            // competes with the glyph for the centre. The number is in the notification text
+            // anyway; this is a glance cue, not the reading.
+            let stripH = 12 * u
+            let inset = 26 * u
+            let strip = NSRect(x: inset, y: inset,
+                               width: size - inset * 2, height: stripH)
             shell.withAlphaComponent(0.30).setFill()
-            NSBezierPath(roundedRect: barRect, xRadius: barH / 2, yRadius: barH / 2).fill()
+            NSBezierPath(roundedRect: strip, xRadius: stripH / 2, yRadius: stripH / 2).fill()
 
-            let fillW = max(barRect.width * CGFloat(percent) / 100, percent > 0 ? barH : 0)
+            let fillW = max(strip.width * CGFloat(percent) / 100, percent > 0 ? stripH : 0)
             if fillW > 0 {
                 shell.setFill()
-                NSBezierPath(roundedRect: NSRect(x: barRect.minX, y: barRect.minY,
-                                                 width: fillW, height: barH),
-                             xRadius: barH / 2, yRadius: barH / 2).fill()
+                NSBezierPath(roundedRect: NSRect(x: strip.minX, y: strip.minY,
+                                                 width: fillW, height: stripH),
+                             xRadius: stripH / 2, yRadius: stripH / 2).fill()
             }
 
             if let bolt {
                 let b = bolt.size
-                bolt.draw(in: NSRect(x: (size - b.width) / 2, y: barRect.midY - b.height / 2,
+                bolt.draw(in: NSRect(x: (size - b.width) / 2, y: strip.midY - b.height / 2,
                                      width: b.width, height: b.height))
             }
             return true

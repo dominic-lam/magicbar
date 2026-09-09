@@ -69,6 +69,20 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
                 }
                 NSLog("[magicbar] label alert opaque=\(sampled) coloured=\(coloured)")
             }
+            // Writes the notification tile so its composition can be measured rather than
+            // judged by eye off a screenshot.
+            for (name, pid) in [("mouse", 617), ("keyboard", 620)] {
+                let probe = Device(id: name, name: name, percent: 18,
+                                   isCharging: false, statusFlags: 0, productID: pid)
+                let tile = MenuBarRenderer.gaugeImage(device: probe, urgency: .low, size: 256)
+                if let tiff = tile.tiffRepresentation,
+                   let rep = NSBitmapImageRep(data: tiff),
+                   let png = rep.representation(using: .png, properties: [:]) {
+                    let url = URL(fileURLWithPath: "/tmp/magicbar-tile-\(name).png")
+                    try? png.write(to: url)
+                    NSLog("[magicbar] wrote \(url.path)")
+                }
+            }
             exit(0)
         }
 
