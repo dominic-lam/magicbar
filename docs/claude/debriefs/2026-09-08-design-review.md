@@ -456,3 +456,62 @@ Three rules have since been pulled out into pure functions with their own launch
 The first attempt to verify the alert cadence reported it broken when it was not — the probe
 process exited before notification authorization resolved, so nothing was recorded. A rule
 entangled with permission and persistence could not be checked at all.
+
+---
+
+## What the reviewers rated highly
+
+Consolidated, because the praise is spread across four documents and says something the
+findings do not.
+
+**Three of the four singled out the low-water-mark alert logic** — the rule that replaced the
+bash version's threshold ladder. The menu bar designer called it "the strongest thing in the
+app, and the part users would have hated first". The developer, who was primed to dislike being
+nagged, said it was "more care than any of the four apps I deleted" and that what was missing
+was not the logic but consent.
+
+**Two independently valued the dead ends being written down.** The developer was explicit that
+`ARCHITECTURE.md` is what earned his trust, specifically because it records the route that does
+*not* work: "people who write down their dead ends have usually measured the live ones too".
+The menu bar designer said the write-up of the *wrong* fix to the fill-floor bug was "the more
+valuable artefact" — more valuable than the fix.
+
+**Traps that commonly ship broken, caught here:**
+
+- The presentation delegate keeping an alert visible while the popover has made the app
+  frontmost — "a trap that ships broken constantly, and it is the exact moment a user presses
+  a test button".
+- `isTemplate` set explicitly on both drawing paths, since a composed image silently inherits
+  `true` from an SF Symbol and loses every colour.
+- Monospaced digits to stop the menu bar twitching — "most people ship the twitch and never
+  diagnose it".
+- The white bolt drawn over the gauge rather than knocked out of it.
+- `launchAtLogin` reading the system's real state back after setting it, so a failed
+  registration shows as an unticked box rather than a checkbox that lies.
+- `fireDeveloperNotification` not moving the low-water mark, so a test cannot silence a real
+  warning that was due later.
+- The denied-permission banner clearing itself once the user fixes System Settings, where most
+  apps require a relaunch.
+
+**Design decisions rated as correct:** `Urgency` as a single enum feeding colour, wording and
+tint, so no two surfaces can disagree; the notification tile using the urgency colour as the
+ground rather than the fill; one type size across the panel with hierarchy from weight and
+colour, "why the panel reads as one widget rather than three stacked ones"; the sound list
+enumerated from disk rather than hardcoded; IOKit interest notifications so a cable lands
+immediately.
+
+**On trust,** the developer grepped for `URLSession`, `http`, analytics, telemetry and Sparkle
+and found none, noted no packages and no update checker, and rated the 5-second poll a
+non-issue. Unsandboxed did not concern him because he had read the code.
+
+**From the non-technical user,** the only unqualified praise: the device list "made sense
+instantly — two devices, two bars, two numbers. That's exactly what I wanted and macOS doesn't
+give me it", and the 20% badge as "a day or two earlier" than macOS.
+
+### The pattern worth noticing
+
+Almost all of the praise is for **engineering judgement**, not for the product. Nobody rated
+the concept, the escalation model, or the interface beyond the device list. The two users
+arrived with a problem and both said the app addresses it only halfway — it tells you the
+number sooner, but still at a moment you cannot act on, and then repeats itself. The
+craftsmanship is not in question. What the app is *for* still is.
