@@ -63,9 +63,6 @@ Nothing known.
 
 - [ ] **`MIGRATION.md` is gitignored**, so the decommissioning guide exists on one machine only.
       *Next action:* decide whether that is still right now that it covers the predecessor only.
-- [ ] **No app icon.** `Assets.xcassets/AppIcon.appiconset` is empty, so the app has the generic
-      icon. Range's `scripts/render-icon.swift` draws a battery with Core Graphics and takes
-      fill colours as arguments — adapt rather than start from scratch.
 
 ---
 

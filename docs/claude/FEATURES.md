@@ -15,7 +15,6 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 |---|---|---|
 | Suppress alerts while charging | Committed | Decode `BatteryStatusFlags` with a device plugged in |
 | Keep a sleeping device visible | Committed | Decide the staleness cutoff |
-| App icon | Committed | Adapt Range's Core Graphics battery script |
 | Both devices in the menu bar at once | Idea | Decide how wide is too wide |
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
 | Sleep/wake awareness | Idea | Measure how late the first post-wake reading is |
@@ -44,6 +43,11 @@ wobbles upward. Replaced the threshold ladder that caused the original alert cas
 
 Both live in the popover and persist in `UserDefaults`, replacing `config.sh`.
 
+### App icon — v1.0.0
+
+A Magic Mouse silhouette acting as the battery gauge, drawn by `scripts/render-icon.swift` and
+rendered natively at each size. Same idea as the menu bar: a device shape carrying a level.
+
 ### Launch at login — v1.0.0
 
 `SMAppService`, registered on first launch, revocable from the popover.
@@ -62,11 +66,6 @@ bit meanings are undecoded — decoding needs a device actually plugged in.
 A disconnected peripheral vanishes from the registry, so it vanishes from the popover, which
 looks like a bug rather than a sleeping mouse. Show the last known level with a timestamp
 instead. Needs a staleness cutoff decision.
-
-### App icon
-
-`Assets.xcassets/AppIcon.appiconset` is empty. Range's `scripts/render-icon.swift` already
-draws a battery with Core Graphics and takes fill colours as arguments.
 
 ---
 

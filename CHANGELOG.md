@@ -19,6 +19,7 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
   from the system, so the Magic Keyboard is monitored without configuration.
 - Starts at login, with a toggle to turn that off.
 - Diagnostics: `--dump-devices`, `--dump-label` and `--simulate` for driving states by hand.
+- App icon: a Magic Mouse silhouette used as the battery gauge.
 
 ### Fixed
 - **Repeated alerts for a battery that had not moved.** A one-point rise in a Bluetooth reading
@@ -35,7 +36,6 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 - Notification permission must be granted by hand in System Settings › Notifications. macOS
   recorded a refusal during development and will not re-prompt.
 - Alerts still fire for a device that is charging. The charging flag is not yet decoded.
-- No app icon yet.
 
 ## [0.1.0] — 2026-04-21
 

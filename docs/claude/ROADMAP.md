@@ -23,7 +23,7 @@ itself.
 | 4 | Multi-device monitoring | Shipped 2026-09-08 — dissolved by discovery, not built |
 | 5 | Fix the alert cascade | Shipped 2026-09-08 — low-water marks replaced the ladder |
 | 6 | Notifications actually delivering | Now — blocked on a System Settings switch |
-| 7 | Charging awareness, stale-device display, app icon | Next |
+| 7 | Charging awareness, stale-device display | Next |
 | 8 | Retire the predecessor scripts | Next — after a reboot proves self-start |
 
 ## Now / next / later
@@ -31,7 +31,7 @@ itself.
 - **Now (phase 6):** allow notifications in System Settings, then confirm one is delivered.
   Nothing else is worth doing until the app's loudest behaviour is known to work.
 - **Next (phases 7–8):** suppress alerts while charging, keep a sleeping device visible with a
-  timestamp, draw an app icon. Then decommission the predecessor per `MIGRATION.md`.
+  timestamp. Then decommission the predecessor per `MIGRATION.md`.
 - **Later:** everything in `FEATURES.md` § Idea. None of it is committed.
 - **Not planned:** distribution, notarisation, non-Apple peripherals, a preferences window.
   The popover is the whole interface.
