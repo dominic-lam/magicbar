@@ -25,7 +25,9 @@ struct MagicbarApp: App {
 
     private var currentImage: NSImage {
         guard let device = store.menuBarDevice else { return MenuBarRenderer.idleImage() }
-        return MenuBarRenderer.alertImage(device: device, urgency: store.urgency(for: device.percent))
+        return MenuBarRenderer.alertImage(device: device,
+                                          urgency: store.urgency(for: device.percent),
+                                          bold: store.boldAlerts)
     }
 }
 
@@ -89,7 +91,7 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
 
             let device = Device(id: "probe", name: "Magic Mouse", percent: 19,
                                 isCharging: false, statusFlags: 0, productID: 617)
-            let alert = MenuBarRenderer.alertImage(device: device, urgency: .low)
+            let alert = MenuBarRenderer.alertImage(device: device, urgency: .low, bold: false)
             NSLog("[magicbar] label alert size=\(alert.size) isTemplate=\(alert.isTemplate)")
 
             if let tiff = alert.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) {

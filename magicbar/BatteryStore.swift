@@ -58,6 +58,19 @@ final class BatteryStore: ObservableObject {
         }
     }
 
+    /// Draws the menu bar alert as a filled capsule with dark content, plus a warning mark at
+    /// the urgent level.
+    ///
+    /// Named for what it does rather than for who needs it. It answers two measured problems —
+    /// the standard style's warn orange is 2.20:1 against a light menu bar where text wants
+    /// 4.5:1, and orange and red simulate to nearly the same olive-yellow for red-green
+    /// colourblind users, so hue alone cannot separate the two levels. Both are contrast
+    /// problems, and a setting called after an impairment labels the reader rather than the
+    /// feature, so anyone who would benefit has to identify themselves to find it.
+    @Published var boldAlerts: Bool {
+        didSet { UserDefaults.standard.set(boldAlerts, forKey: "boldAlerts") }
+    }
+
     @Published var menuBarVisibility: MenuBarVisibility {
         didSet { UserDefaults.standard.set(menuBarVisibility.rawValue, forKey: "menuBarVisibility") }
     }
@@ -179,6 +192,7 @@ final class BatteryStore: ObservableObject {
         defaults.register(defaults: ["alertThreshold": 20, "nagThreshold": 10])
         defaults.register(defaults: [
             "alertSound": "Hero",
+            "boldAlerts": false,
             "menuBarVisibility": MenuBarVisibility.belowWarn.rawValue,
             "notificationsEnabled": true,
             "coarseEnabled": true,
@@ -193,6 +207,7 @@ final class BatteryStore: ObservableObject {
         nagThreshold = defaults.integer(forKey: "nagThreshold")
         alertSound = defaults.string(forKey: "alertSound") ?? "Hero"
         developerMode = defaults.bool(forKey: "developerMode")
+        boldAlerts = defaults.bool(forKey: "boldAlerts")
         menuBarVisibility = MenuBarVisibility(rawValue: defaults.string(forKey: "menuBarVisibility") ?? "") ?? .belowWarn
         notificationsEnabled = defaults.bool(forKey: "notificationsEnabled")
         coarseEnabled = defaults.bool(forKey: "coarseEnabled")

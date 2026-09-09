@@ -42,8 +42,124 @@ enum MenuBarRenderer {
         return symbol
     }
 
-    /// A device is low: its glyph, the percentage, and at the urgent level a warning mark,
-    /// all knocked out of a filled capsule in the urgency colour.
+    /// The standard alert: the device's glyph, a level bar and the percentage, drawn in the
+    /// urgency colour directly on the menu bar.
+    ///
+    /// Lighter and narrower than the high-contrast style, and the default because it is what
+    /// the menu bar's own items look like. Its weakness is measured rather than theoretical —
+    /// the warn orange is 2.20:1 against a light bar where text wants 4.5:1 — which is what
+    /// `boldAlertImage` exists to answer for anyone that affects.
+    ///
+    /// `isTemplate` is set false explicitly rather than left at its default. Symbols come
+    /// back from `NSImage(systemSymbolName:)` already marked as templates, so an image
+    /// composed from one can silently inherit that and lose every colour drawn here.
+    static func standardAlertImage(device: Device, urgency: Urgency) -> NSImage {
+        let nsColor = NSColor(urgency.color)
+
+        let configuration = NSImage.SymbolConfiguration(pointSize: symbolPointSize, weight: .regular)
+            .applying(.init(paletteColors: [nsColor]))
+        let deviceSymbol = symbol(named: device.symbolCandidates,
+                                  configuration: configuration,
+                                  description: device.shortName)
+
+        // Monospaced digits, so the item keeps a constant width as the number changes.
+        // Proportional digits make the whole right-hand side of the menu bar twitch on
+        // every update.
+        let text = NSAttributedString(string: "\(device.percent)%", attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .medium),
+            .foregroundColor: nsColor,
+        ])
+
+        // A bolt when the device is on a cable, drawn *over* the middle of the gauge the way
+        // the system's own battery indicator does. It is stroked in the background colour
+        // first so it stays legible against both the filled and unfilled parts of the bar.
+        let bolt: NSImage? = device.isCharging
+            ? Self.symbol(named: ["bolt.fill", "bolt"],
+                          configuration: NSImage.SymbolConfiguration(pointSize: fontSize, weight: .black)
+                             .applying(.init(paletteColors: [.white])),
+                          description: "charging")
+            : nil
+
+        let symbolSize = deviceSymbol?.size ?? .zero
+        let boltSize = bolt?.size ?? .zero
+        let textSize = text.size()
+        let barWidth: CGFloat = 24
+        let barThickness: CGFloat = 9
+        let gap: CGFloat = 4
+        let height = contentHeight
+        // The bolt overlays the bar, so it costs no width of its own. The bar widens a little
+        // when charging so the glyph has room to sit inside it.
+        let gaugeWidth = bolt == nil ? barWidth : barWidth + 6
+        let totalWidth = symbolSize.width + gap + gaugeWidth + gap + textSize.width
+
+        // Captured as plain values: the drawing handler outlives this call.
+        let percent = device.percent
+
+        let image = NSImage(size: NSSize(width: totalWidth, height: height), flipped: false) { _ in
+            var x: CGFloat = 0
+
+            if let deviceSymbol {
+                deviceSymbol.draw(in: NSRect(x: x,
+                                             y: (height - symbolSize.height) / 2,
+                                             width: symbolSize.width,
+                                             height: symbolSize.height))
+                x += symbolSize.width + gap
+            }
+
+            // Track, then fill. Rounded to match the popover bars, so the two readings of
+            // the same number look like the same control.
+            let track = NSRect(x: x,
+                               y: (height - barThickness) / 2,
+                               width: gaugeWidth,
+                               height: barThickness)
+            nsColor.withAlphaComponent(0.25).setFill()
+            NSBezierPath(roundedRect: track, xRadius: 2, yRadius: 2).fill()
+
+            // Clamped at both ends: a spurious reading over 100 must not draw past the
+            // track, and a zero-width rounded rect would render as a smear.
+            let fraction = CGFloat(min(max(percent, 0), 100)) / 100
+
+            // Floored at 1pt, which is two physical pixels on a 2x display: enough to be
+            // seen, small enough that it still reads as "nearly empty". An earlier version
+            // floored this at the bar's thickness instead, which made every level below 36%
+            // draw identically — and since the bar only appears below the alert threshold,
+            // that was every level it was ever visible at.
+            let fillWidth = percent > 0 ? max(track.width * fraction, 1) : 0
+
+            if fillWidth > 0 {
+                // The corner radius has to shrink with the fill. A 2pt radius on a sub-2pt
+                // wide rect consumes the whole shape, which is why a low reading looked like
+                // an empty track and prompted the wrong fix above.
+                let radius = min(2, fillWidth / 2)
+                nsColor.setFill()
+                NSBezierPath(roundedRect: NSRect(x: track.minX, y: track.minY,
+                                                 width: fillWidth, height: track.height),
+                             xRadius: radius, yRadius: radius).fill()
+            }
+            if let bolt {
+                // White, drawn on top. It was knocked out of the bar before, which shows the
+                // menu bar through the glyph — dark on a green fill, and nearly invisible
+                // against the unfilled track when the reading is low. White reads against
+                // every fill colour and against the track.
+                let b = boltSize
+                bolt.draw(in: NSRect(x: track.midX - b.width / 2, y: track.midY - b.height / 2,
+                                     width: b.width, height: b.height))
+            }
+
+            x += gaugeWidth + gap
+
+            text.draw(at: NSPoint(x: x, y: (height - textSize.height) / 2))
+            return true
+        }
+
+        image.isTemplate = false
+        image.accessibilityDescription =
+            "\(device.shortName), \(device.percent) percent, \(urgency.word)\(device.isCharging ? ", charging" : "")"
+        return image
+    }
+
+    /// The high-contrast alert: the same reading as a filled capsule with dark content, and a
+    /// warning mark at the urgent level.
     ///
     /// **Why a filled capsule and not coloured content on the bare bar.** Coloured content was
     /// only ever checked against a dark menu bar. Measured against a light one, the warn orange
@@ -56,7 +172,7 @@ enum MenuBarRenderer {
     /// users — both simulate to olive-yellow about 13% apart — so hue alone cannot carry the
     /// difference between the two levels. The mark is a second channel that does not depend on
     /// seeing colour at all, and it changes the item's silhouette rather than only its tint.
-    static func alertImage(device: Device, urgency: Urgency) -> NSImage {
+    static func boldAlertImage(device: Device, urgency: Urgency) -> NSImage {
         let tint = NSColor(urgency.color)
         // Near-black rather than pure black: matches the system's own dark surfaces and stays
         // legible if the capsule colour is ever lightened.
@@ -129,6 +245,13 @@ enum MenuBarRenderer {
         image.accessibilityDescription =
             "\(device.shortName), \(device.percent) percent, \(urgency.word)\(device.isCharging ? ", charging" : "")"
         return image
+    }
+
+    /// Picks the style. Kept here rather than at the call site so both drawing functions stay
+    /// interchangeable and neither becomes the special case.
+    static func alertImage(device: Device, urgency: Urgency, bold: Bool) -> NSImage {
+        bold ? boldAlertImage(device: device, urgency: urgency)
+             : standardAlertImage(device: device, urgency: urgency)
     }
 
     /// The square gauge attached to a notification.

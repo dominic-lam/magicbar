@@ -44,12 +44,12 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
   silenced without going near System Settings.
 
 ### Fixed
-- **The menu bar alert is legible on a light menu bar.** It was only ever checked against a
-  dark one; the warn orange measured 2.20:1 against white where text needs 4.5:1. The alert is
-  now dark content on an opaque coloured capsule, which carries its own background.
-- **The two alert levels are distinguishable without seeing colour.** Orange and red simulate
-  to nearly the same olive-yellow for red-green colourblind users, and hue was the only channel.
-  The urgent level now also carries a warning triangle.
+- **"High contrast alerts", off by default**, draws the menu bar alert as a solid badge with
+  dark content and marks the urgent level with a warning symbol as well as a colour. It answers
+  two measured problems for anyone they affect: the standard style's warn orange is 2.20:1
+  against a light menu bar where text wants 4.5:1, and orange and red simulate to nearly the
+  same olive-yellow for red-green colourblind users, so hue alone cannot separate the two
+  levels. Named for what it does, not for who needs it.
 - The menu bar alert image has an accessibility description, so VoiceOver announces the device,
   level and state rather than nothing.
 - **Repeated alerts for a battery that had not moved.** A one-point rise in a Bluetooth reading

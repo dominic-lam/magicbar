@@ -164,6 +164,11 @@ private struct LevelControls: View {
                 LevelKey(color: Urgency.low.color, name: "warn", value: store.alertThreshold)
             }
 
+            Toggle("High contrast alerts", isOn: $store.boldAlerts)
+                .font(PopoverView.rowFont)
+                .toggleStyle(.checkbox)
+                .help("Draws the menu bar alert as a solid badge, and marks the urgent level with a symbol as well as a colour.")
+
             Picker(selection: $store.menuBarVisibility) {
                 ForEach(BatteryStore.MenuBarVisibility.allCases) { option in
                     Text(option.label).tag(option)
