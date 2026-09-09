@@ -10,21 +10,25 @@ a silent glyph to a coloured level bar to a notification per lost percent.
 
 ## Current status
 
-**v1.0.0, built and running.** Installed at `/Applications/magicbar.app`, registered as a login
-item. Swift and SwiftUI, one target, no packages, no background job.
+**v1.1.0, built and running.** Installed at `/Applications/magicbar.app`, registered as a login
+item, allowed to notify. Swift and SwiftUI, one target, no packages, no background job.
 
-**One thing does not work:** notification authorization is denied and must be granted by hand in
-System Settings › Notifications › magicbar. The first launch was a debuggable Debug build,
-macOS recorded a refusal against the bundle ID, and it will not re-prompt.
+Reviewed 2026-09-08 by four reviewers; fifteen of their 37 findings are closed and the rest are
+triaged in `docs/claude/debriefs/2026-09-08-design-review.md`.
+
+**Unverified:** the sleep and daily reminders, added 2026-09-09, have never fired.
+
+**No release exists** — no signed build, no notarisation, no cask. Installing means building
+from source, which both user reviewers named as the first wall they hit.
 
 ## Runtime flow
 
 ```
 IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
       → BatteryReader → [Device]  (lowest first)
-          → BatteryStore  60s timer · thresholds · low-water marks
-              → MenuBarRenderer  idle glyph, or device + bar + percent
-              → Notifier         one alert per percent lost below the nag line
+          → BatteryStore  5s poll + IOKit change events · levels · low-water marks
+              → MenuBarRenderer  idle glyph, or the alert in one of two styles
+              → Notifier         coarse and fine rules, plus sleep and daily reminders
 ```
 
 ## Key files
@@ -33,7 +37,8 @@ IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
 |---|---|
 | `magicbar/BatteryReader.swift` | the only place that reads hardware |
 | `magicbar/BatteryStore.swift` | the notification rule and the poll timer |
-| `magicbar/MenuBarRenderer.swift` | both label states; the part with no prior art |
+| `magicbar/MenuBarRenderer.swift` | both label states and both alert styles |
+| `magicbar/RangeSlider.swift` | the two-handle level slider |
 | `magicbar/Notifier.swift` | authorization and delivery, with the bundle guard |
 | `docs/claude/ARCHITECTURE.md` | why each of the above is shaped that way |
 
@@ -51,11 +56,16 @@ permission. Install to `/Applications`, never run from the build directory, and 
 ## Diagnostics
 
 ```bash
-/Applications/magicbar.app/Contents/MacOS/magicbar --dump-devices
-/Applications/magicbar.app/Contents/MacOS/magicbar --dump-label
-open /Applications/magicbar.app --args --simulate "617:9,620:62"
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-devices      # + which device the menu bar picks
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-label        # + writes both tiles to /tmp
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-cadence "19,14,9,8"
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-retention
+open /Applications/magicbar.app --args --simulate "617:9,620:62"       # "+" suffix = charging
 log show --last 5m --predicate 'eventMessage CONTAINS "[magicbar]"'
 ```
+
+The three `--dump-*` rules exist because a rule that only lives inside a drawing or polling loop
+cannot be checked. Two of the bugs found in review were of exactly that shape.
 
 ## Gotchas
 

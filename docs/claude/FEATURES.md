@@ -13,7 +13,8 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 
 | Feature | Status | Next step |
 |---|---|---|
-| Suppress alerts while charging | Committed | Decode `BatteryStatusFlags` with a device plugged in |
+| Drain estimate ("about 3 days left") | Committed | Decide sampling rate and storage |
+| Charge-complete alert | Idea | Needs a charged state, which needs the flag pinned |
 | Keep a sleeping device visible | Committed | Decide the staleness cutoff |
 | Both devices in the menu bar at once | Idea | Decide how wide is too wide |
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
@@ -48,6 +49,23 @@ Both live in the popover and persist in `UserDefaults`, replacing `config.sh`.
 A Magic Mouse silhouette acting as the battery gauge, drawn by `scripts/render-icon.swift` and
 rendered natively at each size. Same idea as the menu bar: a device shape carrying a level.
 
+### Level slider and reworked alert rules — v1.1.0
+
+Two handles on one 0–50 track with coloured bands, replacing two steppers whose bounds moved
+against each other invisibly. Notifications gained a master switch and two independently
+targeted rules, finer-wins.
+
+### Reminders tied to a moment — v1.1.0
+
+One as the Mac sleeps, one at a chosen hour. The answer to the review's central finding: the
+app knew the level but not the moment, so every warning landed mid-task.
+
+### High contrast alerts — v1.1.0
+
+Optional solid badge with dark content and a warning symbol at the urgent level. Answers a
+2.20:1 contrast failure on light menu bars and the fact that the two levels are the same colour
+under deuteranopia.
+
 ### Launch at login — v1.0.0
 
 `SMAppService`, registered on first launch, revocable from the popover.
@@ -56,10 +74,11 @@ rendered natively at each size. Same idea as the menu bar: a device shape carryi
 
 ## Committed
 
-### Suppress alerts while charging
+### Drain estimate
 
-A device on a cable is still nagged about. `BatteryStatusFlags` reads 0 for both devices and its
-bit meanings are undecoded — decoding needs a device actually plugged in.
+"About three days left" rather than a percentage. Both user reviewers asked for it, and the
+daily reminder needs it to say something useful rather than repeat a number. Needs history: a
+thirty-day ring buffer in a preferences file is enough, not a database.
 
 ### Keep a sleeping device visible
 

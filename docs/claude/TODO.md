@@ -21,6 +21,8 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 ## Operating constraints
 
 **Installed and running** at `/Applications/magicbar.app`, registered as a login item.
+**No release exists** — no signed build, no notarisation, no cask. Installing means building from
+source, which is the first wall both user reviewers hit.
 
 - Build **Release** with `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` or notifications will never
   work. A Debug build is debuggable and macOS refuses it authorization.
@@ -34,15 +36,15 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 
 ## NEXT SESSION
 
-- [ ] **Decode `BatteryStatusFlags` by plugging a device in.** Charging display is built and
-      works against simulated input, but the real flag has only ever been observed as 0. The
-      code treats any non-zero value as charging, which is a guess.
-      *Next action:* plug the mouse in, then `log show --predicate 'eventMessage CONTAINS
-      "BatteryStatusFlags"'`.
-- [ ] **Set the alert style to *Alerts* rather than *Banners*** in System Settings, so a
-      low-battery warning stays on screen instead of vanishing after five seconds. Cannot be
-      set programmatically.
-- [ ] **Retire the predecessor scripts** per `MIGRATION.md`, after a reboot confirms magicbar
+- [ ] **Decide how to release this.** Both user reviewers hit the same first wall: the install
+      is a wall of Terminal commands and there is no signed build. The open questions are
+      whether it is distributed at all, and if so whether that means a notarised build, a
+      Homebrew cask, or just a drag-to-Applications zip. Everything else in this file is
+      smaller than that decision.
+- [ ] **Confirm the two new reminders actually fire.** Sleep the Mac with a device below the
+      warn level, and set the daily hour to the next one. Both are wired and neither has ever
+      run. *(User is testing over the next few days — 2026-09-09.)*
+- [ ] **Retire the predecessor scripts** per `MIGRATION.md`, once a reboot confirms magicbar
       starts itself.
 
 ## Active
@@ -53,21 +55,20 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 
 ### From the review, highest value first
 
-- [ ] **Snooze, or any way to acknowledge an alert.** All four reviewers raised it independently
-      and it is what makes the nagging tolerable rather than merely loud. A notification action
-      writing the current reading into the low-water mark is most of the work.
-      *Next action:* decide between a snooze action, a "quiet until charged" action, or both.
-- [ ] **The alert colours fail on a light menu bar** (orange measures 2.20:1 against white,
-      needing 4.5:1) **and are identical to red-green colourblind users.** One fix covers both:
-      a filled capsule in the urgency colour with the content knocked out, plus a shape
-      difference between the two levels.
-      *Next action:* prototype the capsule and re-measure.
 - [ ] **The charging flag is `!= 0`.** If Apple ever sets another bit, the app reads a fault as
-      charging, suppresses low alerts and turns green — one stray bit switches it off.
+      charging, suppresses low alerts and turns green — one stray bit switches it off. Now
+      that 3 is confirmed as the charging value, this is a small change.
       *Next action:* treat 3 as charging, log anything else.
 - [ ] **The test button is gated behind developer mode**, which is where the one check a normal
       user needs is hardest to find.
       *Next action:* promote it, and decide whether the slider stays behind ⌥.
+- [ ] **A drain estimate — "about three days left".** Both user reviewers asked for it and it is
+      what makes the daily reminder able to say something useful rather than repeat a number.
+      Needs history, but a thirty-day ring buffer in a plist is enough.
+      *Next action:* decide the sampling rate and where it lives.
+- [ ] **Snooze on the notification.** Raised by all four, but partly answered: unticking the 1%
+      rule is now a standing "stop nagging me". A per-occasion snooze is still missing.
+      *Next action:* decide whether the standing setting is enough.
 
 ## Previously active
 

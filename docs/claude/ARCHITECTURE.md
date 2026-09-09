@@ -63,12 +63,57 @@ not collide between two devices of the same model the way a shared product ID wo
 
 ---
 
+## The two menu bar styles
+
+The default draws the glyph, a level bar and the percentage in the urgency colour directly on
+the bar. "High contrast alerts" instead draws dark content on an opaque capsule and adds a
+warning triangle at the urgent level.
+
+The option exists because the default has two measured weaknesses that do not affect everyone:
+its warn orange is **2.20:1** against a light menu bar where text wants 4.5:1, and orange and
+red simulate to nearly the same olive-yellow under deuteranopia, so hue alone cannot separate
+the two levels. The capsule carries its own background and adds a second, non-colour channel.
+
+Named for the effect rather than for who needs it. A setting named after an impairment makes
+the reader identify themselves to find it, and it would also be inaccurate: the contrast half
+has nothing to do with colour vision.
+
 ## The notification rule
 
 Per device, the store keeps the **lowest level seen since the last real recharge**.
 
 An alert fires when a reading is below the nag threshold **and** below that mark. The mark then
 moves down. A rise only resets the mark when it clears `rechargeDelta`, currently 5 points.
+
+### The bands
+
+`decide(percent:lastAnnounced:)` is pure, and deliberately separate from delivery. Two rules,
+each pointed at either level:
+
+| Rule | Default | Step |
+|---|---|---|
+| coarse | below the warn level | 5 points |
+| fine | below the urgent level | 1 point |
+
+**Where both apply the finer wins outright.** Pointing them at the same level is therefore
+redundant rather than contradictory, and no configuration produces two alerts for one drop.
+Turning the fine rule off is the standing "stop nagging me" setting; a master switch above both
+silences everything.
+
+### Reminders tied to a moment
+
+Two notifications answer *when* rather than *what*, and neither goes through the rule above —
+the level has not changed, the opportunity has. Both fire only if something is below the warn
+level, and neither consumes nor is suppressed by the ordinary cadence.
+
+- **On sleep.** `NSWorkspace.willSleepNotification`. The message is read on wake, at a desk,
+  where a cable is free.
+- **Daily, at a chosen hour.** Checked on the ordinary poll against the wall clock rather than
+  by its own timer: a timer that must survive sleep, clock changes and time zones is a whole
+  mechanism, where a comparison is correct by construction. Fires once per day.
+
+This is the half four reviewers said was missing. The app knew the level and not the moment,
+so every warning arrived mid-task, when charging costs the user the device.
 
 ### Why not the obvious thing
 

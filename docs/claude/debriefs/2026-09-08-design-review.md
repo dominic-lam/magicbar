@@ -10,7 +10,7 @@ Screenshots they worked from are in `docs/review-shots/`.
 
 ## Triage
 
-Status as of `bd44754`.
+Status as of `505dd6c`. Fifteen of the 37 are now closed.
 
 | # | Finding | Source | Status |
 |---|---|---|---|
@@ -23,25 +23,25 @@ Status as of `bd44754`.
 | 7 | Up to ten alerts, no grouping | panel designer | **fixed** `7cd0d2f` — grouped per device |
 | 8 | Unpairing a healthy device leaves it listed as "asleep" | user, in session | **fixed** `bd44754` |
 | 9 | Simulated readings indistinguishable from real | found in session | **fixed** `7cd0d2f` |
-| 10 | Orange on a light menu bar is 2.20:1 contrast | menu bar designer | open |
-| 11 | Orange and red identical to red-green colourblind users | menu bar designer | open |
-| 12 | No snooze, no acknowledgement, no way to silence in-app | all four | open |
+| 10 | Orange on a light menu bar is 2.20:1 contrast | menu bar designer | **fixed** `192ef8d` — optional, `505dd6c` |
+| 11 | Orange and red identical to red-green colourblind users | menu bar designer | **fixed** `192ef8d` — optional, `505dd6c` |
+| 12 | No snooze, no acknowledgement, no way to silence in-app | all four | **partly** `192ef8d` — the 1% rule is now optional; no per-occasion snooze |
 | 13 | Level bar is 36% of item width and spans 1–4.6pt of fill | menu bar designer | open |
 | 14 | Menu bar state flips with no hysteresis at the threshold | menu bar designer | open |
 | 15 | Charging takeover has no end state; a full device holds the bar | menu bar designer | open |
 | 16 | Idle glyph carries zero information | menu bar designer | open |
-| 17 | Composed alert image has no accessibility description | menu bar designer | open |
+| 17 | Composed alert image has no accessibility description | menu bar designer | **fixed** `192ef8d` |
 | 18 | Second low device invisible until you click | menu bar designer | open |
 | 19 | Two same-model devices are indistinguishable everywhere | panel designer | open |
 | 20 | Developer mode gates the test button a normal user needs | panel designer | open |
 | 21 | Dev preview never shows real alert wording (`isTest` replaces it) | panel designer | open |
-| 22 | Sound picker has no preview and no "None" | user, panel designer | open |
-| 23 | Steppers: mismatched steps, moving bounds, silent clamping | panel designer | open |
+| 22 | Sound picker has no preview and no "None" | user, panel designer | **fixed** `192ef8d` — preview on select, and a None option |
+| 23 | Steppers: mismatched steps, moving bounds, silent clamping | panel designer | **fixed** `192ef8d` — replaced by the range slider |
 | 24 | No visible "next alert at N%" state | panel designer | open |
 | 25 | No version, no About, Quit styled as a caption | panel designer | open |
-| 26 | No time-remaining estimate | both users | open |
+| 26 | No time-remaining estimate | both users | open — but the daily reminder now depends on it |
 | 27 | No charge-complete alert | everyday user | open |
-| 28 | No end-of-day warning, when the user can actually act | everyday user | open |
+| 28 | No end-of-day warning, when the user can actually act | everyday user | **fixed** `192ef8d` — sleep and daily reminders |
 | 29 | AirPods and non-HID accessories unsupported | power user | open |
 | 30 | No shell hook / `--json` for scripting | power user | open |
 | 31 | Per-device thresholds and mute | power user | open |
@@ -54,7 +54,13 @@ Status as of `bd44754`.
 
 The three that changed the product rather than the polish: **1** (the app contradicting itself
 on screen), **6** (warning too late), and **12** (no consent, which is what makes the nagging
-intolerable rather than merely loud).
+intolerable rather than merely loud). All three are addressed, though **12** only as a standing
+setting rather than a per-occasion snooze.
+
+**28 was the finding that mattered most and was not on anyone's bug list.** Both users
+independently said the app answers "what is the level?" and not "what should I do, and when?" —
+a percentage arriving mid-task is a more detailed ambush. The sleep and daily reminders are the
+answer to that, and they are the only work here that changed what the app is *for*.
 
 ---
 

@@ -129,6 +129,17 @@ threshold it last fired at and re-armed everything when a reading rose above it,
 one-point Bluetooth wobble produced a cascade. Storing the lowest reading seen means a rise
 cannot re-arm anything below `rechargeDelta`. Do not replace this with a level comparison.
 
+**The alert rule is a pure function, `BatteryStore.decide`, and must stay one.** It was
+entangled with notification authorization and `UserDefaults`, which made it untestable — a
+scripted check reported the cadence broken when authorization had simply not resolved in a
+short-lived probe. `--dump-cadence`, `--dump-retention` and the menu bar choice printed by
+`--dump-devices` all exist for the same reason: a rule that only lives inside a drawing or
+polling loop cannot be checked.
+
+**A device's identity is its `DeviceAddress`, never its `SerialNumber` or name.** The same
+physical mouse reports a different serial and a different name over Bluetooth and over USB, so
+keying on either splits one device into two and loses its alert state on plug-in.
+
 **A disconnected device vanishes from the registry entirely.** Absence is never 0%. The store
 leaves a vanished device's marks untouched rather than treating it as a drain to zero.
 
@@ -163,17 +174,22 @@ BatteryStore.swift     poll timer, thresholds, low-water marks, colour
 Notifier.swift         UNUserNotificationCenter, guarded against a missing bundle
 MenuBarRenderer.swift  NSImage composition for both label states
 LoginItem.swift        SMAppService registration
+RangeSlider.swift      the two-handle level slider
+RegistryWatcher.swift  IOKit change notifications, so a cable lands at once
 PopoverView.swift      device rows, threshold steppers, login toggle, Quit
 ```
 
 ---
 
-## Current State (2026-09-08)
+## Current State (2026-09-09)
 
-Built, installed at `/Applications/magicbar.app`, running, registered as a login item.
+Built, installed at `/Applications/magicbar.app`, running, registered as a login item, and
+allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen of their 37
+findings are closed, and the rest are triaged in
+`docs/claude/debriefs/2026-09-08-design-review.md`.
 
-**One thing is not working:** notification authorization is denied. The first launch happened
-from a Debug build carrying `get-task-allow`, macOS recorded a refusal against the bundle ID,
-and it persisted through the fix. The app must be allowed manually in System Settings ›
-Notifications › magicbar. Everything else — discovery, the menu bar states, the decision logic
-— is verified.
+**Unverified:** the two reminders added on 2026-09-09 — one as the Mac sleeps, one at a chosen
+hour — are wired but have never fired.
+
+**No release exists.** Installing means building from source with a build flag, which both user
+reviewers named as the first wall they hit. That decision is the next session's subject.
