@@ -2,23 +2,30 @@ import SwiftUI
 
 /// The panel shown when the menu bar item is clicked.
 ///
-/// Lists every discovered device regardless of level, which is the point of the idle
-/// state: the menu bar says only "monitoring", and this is where the actual numbers live.
+/// Lists every discovered device regardless of level, which is the point of the idle state:
+/// the menu bar says only "monitoring", and this is where the actual numbers live.
+///
+/// **One text size throughout, except the footer.** Every row uses `rowFont`; hierarchy comes
+/// from weight and colour rather than from size. Mixed sizes made the panel read as several
+/// unrelated widgets stacked together.
 struct PopoverView: View {
     @ObservedObject var store: BatteryStore
+
+    /// The single size every row shares. Changing it here changes the whole panel.
+    static let rowFont: Font = .callout
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Battery")
-                .font(.title3)
+                .font(Self.rowFont)
                 .fontWeight(.semibold)
 
             if store.devices.isEmpty {
                 // Distinct from "everything is fine". A peripheral that is asleep or
-                // disconnected vanishes from the registry entirely, and saying so is
-                // better than showing a confident 0%.
+                // disconnected vanishes from the registry entirely, and saying so is better
+                // than showing a confident 0%.
                 Text("No devices reporting a battery.")
-                    .font(.footnote)
+                    .font(Self.rowFont)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -35,37 +42,19 @@ struct PopoverView: View {
 
             Divider()
 
-            if !store.notificationsAllowed {
-                // The one failure the app cannot fix for itself. Saying so here, with the
-                // way out attached, beats a user wondering why alerts never arrive.
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Notifications are turned off")
-                        .font(.footnote)
-                        .fontWeight(.medium)
-                    Text("magicbar can watch the battery but cannot warn you.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button("Open Notification Settings") { store.openNotificationSettings() }
-                        .font(.footnote)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.14))
-                .cornerRadius(8)
-            }
+            NotificationSection(store: store)
 
-            Button("Send a test notification") { store.sendTestNotification() }
-                .font(.footnote)
-                .frame(maxWidth: .infinity)
+            Divider()
 
             Toggle("Open at login", isOn: Binding(
                 get: { store.launchAtLogin },
                 set: { store.launchAtLogin = $0 }
             ))
-            .font(.footnote)
+            .font(Self.rowFont)
             .toggleStyle(.checkbox)
 
+            // The one row deliberately smaller: it is status and an escape hatch, not
+            // something to read.
             HStack {
                 Text("Updates every minute")
                     .font(.footnote)
@@ -80,7 +69,7 @@ struct PopoverView: View {
         .padding(16)
         // A `.window`-style MenuBarExtra does not size itself to anything sensible, so the
         // width is fixed here and the height left free.
-        .frame(width: 300)
+        .frame(width: 320)
     }
 }
 
@@ -95,17 +84,17 @@ private struct DeviceRow: View {
                 Image(systemName: device.symbolCandidates.first ?? "battery.50percent")
                     .foregroundStyle(.secondary)
                 Text(device.shortName)
-                    .font(.callout)
+                    .font(PopoverView.rowFont)
                 if device.isCharging {
                     Image(systemName: "bolt.fill")
-                        .font(.caption)
+                        .font(PopoverView.rowFont)
                         .foregroundStyle(.green)
                 }
             }
 
             HStack(spacing: 8) {
-                // GeometryReader is greedy vertically, so it needs its own height as well
-                // as the shapes inside it, or it swallows the whole stack.
+                // GeometryReader is greedy vertically, so it needs its own height as well as
+                // the shapes inside it, or it swallows the whole stack.
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
@@ -122,7 +111,7 @@ private struct DeviceRow: View {
                 // Monospaced and fixed width, so the bar does not shift sideways as the
                 // number's width changes.
                 Text("\(device.percent)%")
-                    .font(.callout)
+                    .font(PopoverView.rowFont)
                     .fontWeight(.semibold)
                     .foregroundStyle(color)
                     .monospacedDigit()
@@ -134,40 +123,137 @@ private struct DeviceRow: View {
 
 /// The two thresholds, adjustable without a rebuild.
 ///
-/// The bash version kept these in `config.sh` where a text editor could reach them.
-/// Requiring a recompile to change a number would have been a regression, so they live in
-/// `UserDefaults` and are edited here.
+/// The bash version kept these in `config.sh` where a text editor could reach them. Requiring
+/// a recompile to change a number would have been a regression.
 private struct ThresholdControls: View {
     @ObservedObject var store: BatteryStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Stepper(value: $store.alertThreshold, in: (store.nagThreshold + 1)...100, step: 5) {
-                HStack {
-                    Text("Show in menu bar below")
-                        .font(.footnote)
-                    Spacer()
-                    Text("\(store.alertThreshold)%")
-                        .font(.footnote)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+                LabelledValue(title: "Show in menu bar below", value: "\(store.alertThreshold)%")
             }
 
-            // Capped below the alert threshold so the two cannot cross. A nag threshold
-            // above the alert threshold would notify about a device the menu bar was not
-            // even showing.
+            // Capped below the alert threshold so the two cannot cross. A nag threshold above
+            // the alert threshold would notify about a device the menu bar was not showing.
             Stepper(value: $store.nagThreshold, in: 1...max(1, store.alertThreshold - 1), step: 1) {
-                HStack {
-                    Text("Notify every % below")
-                        .font(.footnote)
-                    Spacer()
-                    Text("\(store.nagThreshold)%")
-                        .font(.footnote)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+                LabelledValue(title: "Notify every % below", value: "\(store.nagThreshold)%")
             }
+        }
+    }
+}
+
+/// Everything about alerts: whether they can be delivered, what they sound like, and the
+/// developer controls for provoking one.
+private struct NotificationSection: View {
+    @ObservedObject var store: BatteryStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Notifications")
+                .font(PopoverView.rowFont)
+                .fontWeight(.semibold)
+
+            if !store.notificationsAllowed {
+                // The one failure the app cannot fix for itself. Saying so here, with the way
+                // out attached, beats a user wondering why alerts never arrive.
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Notifications are turned off")
+                        .font(PopoverView.rowFont)
+                        .fontWeight(.medium)
+                    Text("magicbar can watch the battery but cannot warn you.")
+                        .font(PopoverView.rowFont)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Open Notification Settings") { store.openNotificationSettings() }
+                        .font(PopoverView.rowFont)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.14))
+                .cornerRadius(8)
+            }
+
+            Picker(selection: $store.alertSound) {
+                ForEach(BatteryStore.availableSounds, id: \.self) { name in
+                    Text(name).tag(name)
+                }
+            } label: {
+                Text("Alert sound")
+                    .font(PopoverView.rowFont)
+            }
+            .pickerStyle(.menu)
+            .font(PopoverView.rowFont)
+
+            Toggle("Developer mode", isOn: $store.developerMode)
+                .font(PopoverView.rowFont)
+                .toggleStyle(.checkbox)
+
+            if store.developerMode {
+                DeveloperControls(store: store)
+            }
+        }
+    }
+}
+
+/// Fires an alert for any device at any level.
+///
+/// Battery levels cannot be dialled to order, so without this the only way to see what a
+/// warning looks like at 3% is to run a device down to 3%.
+private struct DeveloperControls: View {
+    @ObservedObject var store: BatteryStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker(selection: $store.testDeviceID) {
+                ForEach(store.devices) { device in
+                    Text(device.shortName).tag(device.id)
+                }
+            } label: {
+                Text("Device")
+                    .font(PopoverView.rowFont)
+            }
+            .pickerStyle(.menu)
+            .font(PopoverView.rowFont)
+            .disabled(store.devices.isEmpty)
+
+            VStack(alignment: .leading, spacing: 4) {
+                LabelledValue(title: "Battery level", value: "\(store.testPercent)%")
+                // A slider rather than a stepper: the point is to sweep across the thresholds
+                // and watch the colour and wording change, not to nudge one percent at a time.
+                Slider(value: Binding(
+                    get: { Double(store.testPercent) },
+                    set: { store.testPercent = Int($0) }
+                ), in: 0...100, step: 1)
+            }
+
+            Button("Fire notification") { store.fireDeveloperNotification() }
+                .font(PopoverView.rowFont)
+                .frame(maxWidth: .infinity)
+                .disabled(!store.notificationsAllowed)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.06))
+        .cornerRadius(8)
+    }
+}
+
+/// A label on the left and its value on the right, at the shared row size. Used wherever a
+/// setting shows its current number, so they all line up.
+private struct LabelledValue: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(PopoverView.rowFont)
+            Spacer()
+            Text(value)
+                .font(PopoverView.rowFont)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
         }
     }
 }

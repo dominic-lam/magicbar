@@ -22,9 +22,13 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 - App icon: a Magic Mouse silhouette used as the battery gauge.
 - Charging state in the menu bar: a bolt beside the level, shown at any percentage rather than
   only below the alert threshold, so a device put on a cable can be watched filling.
-- A test button in the popover, and a matching `--test-notification` argument.
-- Notifications carry a coloured gauge image matching the level, so the alert itself looks as
-  urgent as the reading. Titles escalate through low, very low and critical.
+- A Notifications section in the popover: alert sound picker, and a developer mode that fires
+  an alert for any device at any level, so a warning can be seen at 3% without draining a
+  device to 3%.
+- A `--test-notification` argument that runs the same path from a terminal.
+- Notifications carry the level's colour twice over: a tinted gauge image, and a coloured dot
+  in both the title and the body. Notification text has no colour API, so the dot is the only
+  way the words themselves can show urgency.
 
 ### Fixed
 - **Repeated alerts for a battery that had not moved.** A one-point rise in a Bluetooth reading
@@ -36,6 +40,10 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 ### Removed
 - SwiftBar, `terminal-notifier`, the launchd agent and the shell installer. The app has no
   third-party dependencies and no background job.
+
+### Changed
+- One text size throughout the popover, with the footer the only deliberate exception.
+  Hierarchy now comes from weight and colour rather than from size.
 
 ### Known issues
 - Charging detection reads an undocumented flag that has only ever been observed at rest.

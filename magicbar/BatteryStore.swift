@@ -34,6 +34,32 @@ final class BatteryStore: ObservableObject {
         }
     }
 
+    /// Which macOS alert sound a notification plays. "Default" means the system default.
+    @Published var alertSound: String {
+        didSet { UserDefaults.standard.set(alertSound, forKey: "alertSound") }
+    }
+
+    /// Unlocks the controls for firing an arbitrary alert. Off by default because the only
+    /// reason to reach for them is to test the app, not to use it.
+    @Published var developerMode: Bool {
+        didSet { UserDefaults.standard.set(developerMode, forKey: "developerMode") }
+    }
+
+    /// Developer-mode dials. Not persisted: they describe one throwaway test, and carrying
+    /// them across launches would only be confusing.
+    @Published var testDeviceID: String = ""
+    @Published var testPercent: Int = 5
+
+    /// The alert sounds macOS ships, plus the default. Read from `/System/Library/Sounds`
+    /// rather than hardcoded, so the list matches whatever this machine actually has.
+    static let availableSounds: [String] = {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: "/System/Library/Sounds"))?
+            .filter { $0.hasSuffix(".aiff") }
+            .map { String($0.dropLast(5)) }
+            .sorted() ?? []
+        return ["Default"] + names
+    }()
+
     private var firedLaunchTest = false
     private var timer: Timer?
     private let notifier = Notifier()
@@ -64,8 +90,11 @@ final class BatteryStore: ObservableObject {
         // `integer(forKey:)` returns 0 for an absent key, which would mean "never alert".
         // Register defaults so a first run behaves like the documented 20 and 10.
         defaults.register(defaults: ["alertThreshold": 20, "nagThreshold": 10])
+        defaults.register(defaults: ["alertSound": "Default"])
         alertThreshold = defaults.integer(forKey: "alertThreshold")
         nagThreshold = defaults.integer(forKey: "nagThreshold")
+        alertSound = defaults.string(forKey: "alertSound") ?? "Default"
+        developerMode = defaults.bool(forKey: "developerMode")
         lowWaterMarks = defaults.dictionary(forKey: marksDefaultsKey) as? [String: Int] ?? [:]
 
         SimulatedReadings.parseLaunchArguments()
@@ -119,6 +148,9 @@ final class BatteryStore: ObservableObject {
         notifier.refreshAuthorization()
         notificationsAllowed = notifier.isAuthorized
         devices = BatteryReader.read()
+        if devices.first(where: { $0.id == testDeviceID }) == nil {
+            testDeviceID = devices.first?.id ?? ""
+        }
         for device in devices { evaluateNotification(for: device) }
     }
 
@@ -162,7 +194,8 @@ final class BatteryStore: ObservableObject {
         // authorization not having resolved yet on the first poll after launch — was lost
         // for good rather than retried.
         if mark == nil || device.percent < mark! {
-            if notifier.notifyLowBattery(device: device, color: color(for: device.percent)) {
+            if notifier.notifyLowBattery(device: device, urgency: urgency(for: device.percent),
+                                         sound: alertSound) {
                 lowWaterMarks[device.id] = device.percent
                 persistMarks()
             }
@@ -173,13 +206,16 @@ final class BatteryStore: ObservableObject {
         UserDefaults.standard.set(lowWaterMarks, forKey: marksDefaultsKey)
     }
 
-    /// Colour for a level, shared by the menu bar, the popover and the notification image
-    /// so that all three cannot disagree about how urgent the same number is.
-    func color(for percent: Int) -> Color {
-        if percent < nagThreshold { return .red }
-        if percent < alertThreshold { return .orange }
-        return .green
+    /// How alarming a reading is, given the current thresholds. Everything that expresses
+    /// urgency — menu bar colour, notification tint, the dot in the alert title — comes from
+    /// this one call.
+    func urgency(for percent: Int) -> Urgency {
+        if percent < nagThreshold { return .critical }
+        if percent < alertThreshold { return .low }
+        return .ok
     }
+
+    func color(for percent: Int) -> Color { urgency(for: percent).color }
 
     /// Sends one notification for the lowest device, whatever its level.
     ///
@@ -189,7 +225,25 @@ final class BatteryStore: ObservableObject {
     func sendTestNotification() {
         let device = devices.first ?? Device(id: "test", name: "Magic Mouse", percent: 5,
                                              isCharging: false, statusFlags: 0, productID: 617)
-        notifier.notifyLowBattery(device: device, color: color(for: device.percent), isTest: true)
+        notifier.notifyLowBattery(device: device, urgency: urgency(for: device.percent),
+                                  sound: alertSound, isTest: true)
+    }
+
+    /// Fires an alert for a chosen device at a chosen level, without touching the real
+    /// reading or the notification state. Developer mode only.
+    ///
+    /// Deliberately does not move the low-water mark: a test must not be able to silence a
+    /// genuine warning that would otherwise have fired later.
+    func fireDeveloperNotification() {
+        let template = devices.first(where: { $0.id == testDeviceID }) ?? devices.first
+        let device = Device(id: template?.id ?? "test",
+                            name: template?.name ?? "Magic Mouse",
+                            percent: testPercent,
+                            isCharging: false,
+                            statusFlags: 0,
+                            productID: template?.productID ?? 617)
+        notifier.notifyLowBattery(device: device, urgency: urgency(for: testPercent),
+                                  sound: alertSound, isTest: true)
     }
 
     /// Mirrored rather than read through to `notifier`: a nested observable object does not

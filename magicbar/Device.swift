@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// One Apple peripheral that reports a battery level.
 ///
@@ -61,5 +62,42 @@ struct Device: Identifiable, Equatable {
             return family
         }
         return name
+    }
+}
+
+/// How alarming a reading is.
+///
+/// The colour, the notification wording and the coloured dot in the alert title all come
+/// from here, so a level can never look urgent in one place and calm in another.
+enum Urgency {
+    case critical   // below the nag threshold
+    case low        // below the alert threshold
+    case ok
+
+    var color: Color {
+        switch self {
+        case .critical: return .red
+        case .low: return .orange
+        case .ok: return .green
+        }
+    }
+
+    /// Notification text has no colour API — `UNMutableNotificationContent` exposes a title
+    /// and a body and nothing else. A coloured dot in the title is the only way to get the
+    /// level's colour into the words themselves.
+    var dot: String {
+        switch self {
+        case .critical: return "\u{1F534}"
+        case .low: return "\u{1F7E0}"
+        case .ok: return "\u{1F7E2}"
+        }
+    }
+
+    var word: String {
+        switch self {
+        case .critical: return "battery critical"
+        case .low: return "battery low"
+        case .ok: return "battery"
+        }
     }
 }

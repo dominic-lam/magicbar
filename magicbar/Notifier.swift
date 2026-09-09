@@ -85,23 +85,25 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     /// reached anyone. Authorization resolves asynchronously after launch, so the first poll
     /// of every run would otherwise silently swallow an alert.
     @discardableResult
-    func notifyLowBattery(device: Device, color: Color, isTest: Bool = false) -> Bool {
+    func notifyLowBattery(device: Device, urgency: Urgency, sound: String, isTest: Bool = false) -> Bool {
         guard isBundled, isAuthorized else {
             NSLog("%@", "[magicbar] suppressed alert for \(device.shortName) at \(device.percent)%: authorized=\(isAuthorized)")
             return false
         }
 
         let content = UNMutableNotificationContent()
-        content.title = isTest
-            ? "\(device.shortName) — test alert"
-            : "\(device.shortName) \(urgencyWord(for: device.percent))"
-        content.body = "\(device.percent)% remaining"
-        content.sound = .default
+        // The dot is the only colour the text itself can carry, and it repeats in the body so
+        // the level still reads where a title is truncated.
+        content.title = "\(urgency.dot) \(device.shortName) \(isTest ? "test alert" : urgency.word)"
+        content.body = "\(urgency.dot) \(device.percent)% remaining"
+        content.sound = sound == "Default"
+            ? .default
+            : UNNotificationSound(named: UNNotificationSoundName("\(sound).aiff"))
 
         // Notification content carries no colour of its own — there is no tint API. An
         // attached image is the only way to make the alert itself look urgent, so the same
         // gauge the menu bar draws is rendered in the same colour and attached here.
-        if let attachment = gaugeAttachment(device: device, color: color) {
+        if let attachment = gaugeAttachment(device: device, color: urgency.color) {
             content.attachments = [attachment]
         }
 
@@ -119,14 +121,6 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             }
         }
         return true
-    }
-
-    /// Escalating wording, so the text carries urgency even where the image does not show —
-    /// the notification list, the lock screen, or a summary.
-    private func urgencyWord(for percent: Int) -> String {
-        if percent <= 5 { return "battery critical" }
-        if percent <= 10 { return "battery very low" }
-        return "battery low"
     }
 
     /// Writes the gauge to a temp PNG and wraps it as an attachment.
