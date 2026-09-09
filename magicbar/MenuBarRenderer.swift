@@ -96,15 +96,23 @@ enum MenuBarRenderer {
             // Clamped at both ends: a spurious reading over 100 must not draw past the
             // track, and a zero-width rounded rect would render as a smear.
             let fraction = CGFloat(min(max(percent, 0), 100)) / 100
-            // Floored at the bar's own thickness. Below about 10% the true fill is thinner
-            // than a pixel, so the bar renders as an empty track at exactly the moment it
-            // matters most — a stub keeps "nearly empty" distinguishable from "no reading".
-            let fillWidth = percent > 0 ? max(track.width * fraction, barThickness) : 0
+
+            // Floored at 1pt, which is two physical pixels on a 2x display: enough to be
+            // seen, small enough that it still reads as "nearly empty". An earlier version
+            // floored this at the bar's thickness instead, which made every level below 36%
+            // draw identically — and since the bar only appears below the alert threshold,
+            // that was every level it was ever visible at.
+            let fillWidth = percent > 0 ? max(track.width * fraction, 1) : 0
+
             if fillWidth > 0 {
+                // The corner radius has to shrink with the fill. A 2pt radius on a sub-2pt
+                // wide rect consumes the whole shape, which is why a low reading looked like
+                // an empty track and prompted the wrong fix above.
+                let radius = min(2, fillWidth / 2)
                 nsColor.setFill()
                 NSBezierPath(roundedRect: NSRect(x: track.minX, y: track.minY,
                                                  width: fillWidth, height: track.height),
-                             xRadius: 2, yRadius: 2).fill()
+                             xRadius: radius, yRadius: radius).fill()
             }
             x += barWidth + gap
 

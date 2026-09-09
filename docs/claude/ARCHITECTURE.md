@@ -121,6 +121,19 @@ main screen's scale at the moment of the call. `NSImage(size:flipped:drawingHand
 re-invokes the handler per backing scale instead. The handler may run later and repeatedly, so
 it captures values rather than references.
 
+### The level bar
+
+The fill is floored at 1pt, two physical pixels on a 2x display, and its corner radius shrinks
+with it: `min(2, fillWidth / 2)`.
+
+Both details exist because of a bug worth remembering. A fixed 2pt radius on a sub-2pt fill
+consumes the entire shape, so a low reading drew as an empty track. The first attempt at a fix
+floored the fill at the bar's own thickness instead, which made **every level below 36% render
+identically** — and since the bar only appears below the alert threshold, that was every level
+it was ever visible at. The bar was wrong every single time a user saw it.
+
+Shrinking the radius fixes the cause; the 1pt floor only guarantees a non-zero path.
+
 ### Sizes
 
 Content is drawn 18pt tall against a status bar thickness of 22pt, measured and logged at
