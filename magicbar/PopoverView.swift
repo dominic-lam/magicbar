@@ -56,7 +56,7 @@ struct PopoverView: View {
             // The one row deliberately smaller: it is status and an escape hatch, not
             // something to read.
             HStack {
-                Text("Updates every minute")
+                Text("Updates live")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()

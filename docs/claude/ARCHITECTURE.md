@@ -49,7 +49,9 @@ the middle one is the one that gets forgotten.
 | `Product` | display name, so no device name is hardcoded anywhere |
 | `BatteryPercent` | the level |
 | `HasBattery` | qualification |
-| `SerialNumber` | stable identity for persisted state |
+| `DeviceAddress` | stable identity for persisted state — the only field that survives a transport change |
+| `SerialNumber` | not identity: it differs over Bluetooth and USB |
+| `BatteryStatusFlags` | 0 discharging, 3 charging (measured; layout undocumented) |
 | `ProductID` | icon selection only |
 
 **`Product` is user-editable and its punctuation is inconsistent.** On this machine the
@@ -228,9 +230,11 @@ actually displayed.
 
 ## Known gaps
 
-- **The charging flag is a guess.** `BatteryStatusFlags` reads 0 on every device observed so
-  far, all of them discharging. Any non-zero value is treated as charging and logged. Not yet
-  confirmed against a device actually on a cable.
+- **A device's identity and name both change with its transport.** Confirmed on a Magic Mouse
+  put on a cable: over Bluetooth it reports `SerialNumber` "BC:89:A7:E3:B9:51" and the name
+  "Dominic's Magic Mouse"; over USB the same device reports "J84436504T127CGB4" and "Magic
+  Mouse". `DeviceAddress` is the one field that survives both, which is why state is keyed on
+  it. Keying on the serial split one device into two and lost its alert state on plug-in.
 - **No sleep or wake handling.** The registry watcher covers reconnection, which is the usual
   post-wake event, but nothing observes wake directly.
 - **A vanished device disappears from the popover** rather than showing a last-known value with

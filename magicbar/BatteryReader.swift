@@ -64,14 +64,23 @@ enum BatteryReader {
             return nil
         }
 
-        // SerialNumber is the Bluetooth address and is stable across reconnects. Falling
-        // back to the name keeps a device usable rather than dropping it, at the cost of
-        // state colliding if two peripherals somehow share a name.
-        let id = properties["SerialNumber"] as? String ?? name
+        // `DeviceAddress`, not `SerialNumber`. Measured 2026-09-08 when a Magic Mouse was
+        // put on a cable: the same physical device reports
+        //
+        //   Bluetooth  SerialNumber "BC:89:A7:E3:B9:51"  Product "Dominic's Magic Mouse"
+        //   USB        SerialNumber "J84436504T127CGB4"  Product "Magic Mouse"
+        //
+        // so keying on the serial gives one device two identities and its notification state
+        // does not survive being plugged in. `DeviceAddress` stayed "bc-89-a7-e3-b9-51" across
+        // both transports, and the display name is not identity at all — it changes too.
+        let id = (properties["DeviceAddress"] as? String)?.lowercased()
+            ?? properties["SerialNumber"] as? String
+            ?? name
 
-        // Undocumented. Every device observed while discharging reads 0, so any other
-        // value is treated as "on a cable". Logged whenever it is non-zero so the actual
-        // bit layout can be pinned down the first time a device is plugged in.
+        // Confirmed 2026-09-08 against a Magic Mouse actually on a cable: the flag reads 0
+        // while discharging and 3 while charging, and `pmset -g accps` agreed ("charging
+        // present: true"). The full bit layout is still undocumented, so anything non-zero is
+        // treated as charging and logged.
         let flags = properties["BatteryStatusFlags"] as? Int ?? 0
         if flags != 0 {
             NSLog("%@", "[magicbar] BatteryStatusFlags=\(flags) on \(name) at \(percent)%")
