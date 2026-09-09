@@ -47,6 +47,30 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 
 ## Active
 
+> The 28 open findings from the 2026-09-08 design review are triaged in
+> [`debriefs/2026-09-08-design-review.md`](./debriefs/2026-09-08-design-review.md).
+> The items below are the ones with a decided next action; the rest live in that table.
+
+### From the review, highest value first
+
+- [ ] **Snooze, or any way to acknowledge an alert.** All four reviewers raised it independently
+      and it is what makes the nagging tolerable rather than merely loud. A notification action
+      writing the current reading into the low-water mark is most of the work.
+      *Next action:* decide between a snooze action, a "quiet until charged" action, or both.
+- [ ] **The alert colours fail on a light menu bar** (orange measures 2.20:1 against white,
+      needing 4.5:1) **and are identical to red-green colourblind users.** One fix covers both:
+      a filled capsule in the urgency colour with the content knocked out, plus a shape
+      difference between the two levels.
+      *Next action:* prototype the capsule and re-measure.
+- [ ] **The charging flag is `!= 0`.** If Apple ever sets another bit, the app reads a fault as
+      charging, suppresses low alerts and turns green — one stray bit switches it off.
+      *Next action:* treat 3 as charging, log anything else.
+- [ ] **The test button is gated behind developer mode**, which is where the one check a normal
+      user needs is hardest to find.
+      *Next action:* promote it, and decide whether the slider stays behind ⌥.
+
+## Previously active
+
 ### Bugs
 
 Nothing known.
