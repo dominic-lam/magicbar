@@ -19,6 +19,16 @@ struct Device: Identifiable, Equatable {
 
     let percent: Int
 
+    /// True while the device is on a cable.
+    ///
+    /// Derived from `BatteryStatusFlags`, which reads 0 on every device observed so far
+    /// while discharging. The bit layout is not documented and was decoded by watching the
+    /// value change — see `BatteryReader`, which logs any non-zero value it sees.
+    let isCharging: Bool
+
+    /// The raw flag, kept only so it can be logged. Not used for anything else.
+    let statusFlags: Int
+
     /// USB product ID. 617 is a Magic Mouse, 620 a Magic Keyboard, both verified here.
     let productID: Int?
 

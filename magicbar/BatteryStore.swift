@@ -34,6 +34,7 @@ final class BatteryStore: ObservableObject {
         }
     }
 
+    private var firedLaunchTest = false
     private var timer: Timer?
     private let notifier = Notifier()
 
@@ -68,6 +69,17 @@ final class BatteryStore: ObservableObject {
         lowWaterMarks = defaults.dictionary(forKey: marksDefaultsKey) as? [String: Int] ?? [:]
 
         SimulatedReadings.parseLaunchArguments()
+        // `--test-notification` runs the same path the popover button does. It has to wait
+        // for authorization, which resolves asynchronously, so it hangs off the same hook.
+        let wantsTest = ProcessInfo.processInfo.arguments.contains("--test-notification")
+        notifier.onAuthorizationResolved = { [weak self] in
+            guard let self else { return }
+            self.refresh()
+            if wantsTest, !self.firedLaunchTest {
+                self.firedLaunchTest = true
+                self.sendTestNotification()
+            }
+        }
         notifier.start()
         LoginItem.log()
 
@@ -91,20 +103,37 @@ final class BatteryStore: ObservableObject {
 
     deinit { timer?.invalidate() }
 
-    /// The device driving the menu bar, or nil when everything is healthy.
-    /// `devices` is sorted lowest-first, so this is simply the head when it qualifies.
-    var alertingDevice: Device? {
+    /// The device driving the menu bar, or nil when there is nothing worth showing.
+    ///
+    /// A charging device wins outright, at any level: plugging something in is a thing you
+    /// just did, and watching it climb is the reason to look. Otherwise it is the lowest
+    /// device, and only once it is under the alert threshold. `devices` is sorted
+    /// lowest-first, so that case is simply the head of the list.
+    var menuBarDevice: Device? {
+        if let charging = devices.first(where: { $0.isCharging }) { return charging }
         guard let lowest = devices.first, lowest.percent < alertThreshold else { return nil }
         return lowest
     }
 
     func refresh() {
+        notifier.refreshAuthorization()
+        notificationsAllowed = notifier.isAuthorized
         devices = BatteryReader.read()
         for device in devices { evaluateNotification(for: device) }
     }
 
     /// Fires at most one alert per device per call, and only on a genuine new low.
     private func evaluateNotification(for device: Device) {
+        // Nothing to warn about while it is on a cable. The mark still tracks upward
+        // through the recharge branch below, so the device re-arms as it fills.
+        guard !device.isCharging else {
+            if let mark = lowWaterMarks[device.id], device.percent > mark {
+                lowWaterMarks[device.id] = device.percent
+                persistMarks()
+            }
+            return
+        }
+
         let mark = lowWaterMarks[device.id]
 
         // A real recharge re-arms this device. Anything smaller is treated as noise and
@@ -127,10 +156,16 @@ final class BatteryStore: ObservableObject {
         }
 
         // Below the nag line: notify only on a level never announced before.
+        //
+        // The mark moves only if the alert was actually accepted. Recording it regardless
+        // would mean an alert dropped for a reason outside the user's control — chiefly
+        // authorization not having resolved yet on the first poll after launch — was lost
+        // for good rather than retried.
         if mark == nil || device.percent < mark! {
-            lowWaterMarks[device.id] = device.percent
-            persistMarks()
-            notifier.notifyLowBattery(device: device)
+            if notifier.notifyLowBattery(device: device, color: color(for: device.percent)) {
+                lowWaterMarks[device.id] = device.percent
+                persistMarks()
+            }
         }
     }
 
@@ -138,10 +173,33 @@ final class BatteryStore: ObservableObject {
         UserDefaults.standard.set(lowWaterMarks, forKey: marksDefaultsKey)
     }
 
-    /// Colour for a level, shared by the menu bar and the popover so they cannot disagree.
+    /// Colour for a level, shared by the menu bar, the popover and the notification image
+    /// so that all three cannot disagree about how urgent the same number is.
     func color(for percent: Int) -> Color {
         if percent < nagThreshold { return .red }
         if percent < alertThreshold { return .orange }
         return .green
     }
+
+    /// Sends one notification for the lowest device, whatever its level.
+    ///
+    /// Exists so the popover can prove the whole delivery path end to end. Everything about
+    /// notifications is invisible until one actually arrives — authorization, the frontmost
+    /// suppression rule, Do Not Disturb — and each fails silently on its own.
+    func sendTestNotification() {
+        let device = devices.first ?? Device(id: "test", name: "Magic Mouse", percent: 5,
+                                             isCharging: false, statusFlags: 0, productID: 617)
+        notifier.notifyLowBattery(device: device, color: color(for: device.percent), isTest: true)
+    }
+
+    /// Mirrored rather than read through to `notifier`: a nested observable object does not
+    /// republish to this object's observers, so the popover would never notice the user
+    /// granting permission in System Settings.
+    @Published private(set) var notificationsAllowed = false
+
+    func openNotificationSettings() { notifier.openNotificationSettings() }
+
+    /// Re-reads permission, so the popover stops claiming a denial once the user has fixed
+    /// it in System Settings. Nothing else in the app notices that change.
+    func refreshAuthorization() { notifier.refreshAuthorization() }
 }

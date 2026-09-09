@@ -34,13 +34,14 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 
 ## NEXT SESSION
 
-- [ ] **Allow notifications in System Settings › Notifications › magicbar.** The app is denied
-      and cannot fix that itself. Everything else about notifications is verified; this is the
-      last step between the app and working alerts. Set the style to *Alerts* rather than
-      *Banners* while there, so a warning persists instead of vanishing.
-- [ ] **Confirm a real notification is delivered** once allowed:
-      `open /Applications/magicbar.app --args --simulate "617:9"` then drop to 8 and watch for
-      a banner. The decision logic is verified; only delivery is not.
+- [ ] **Decode `BatteryStatusFlags` by plugging a device in.** Charging display is built and
+      works against simulated input, but the real flag has only ever been observed as 0. The
+      code treats any non-zero value as charging, which is a guess.
+      *Next action:* plug the mouse in, then `log show --predicate 'eventMessage CONTAINS
+      "BatteryStatusFlags"'`.
+- [ ] **Set the alert style to *Alerts* rather than *Banners*** in System Settings, so a
+      low-battery warning stays on screen instead of vanishing after five seconds. Cannot be
+      set programmatically.
 - [ ] **Retire the predecessor scripts** per `MIGRATION.md`, after a reboot confirms magicbar
       starts itself.
 
@@ -52,9 +53,6 @@ Nothing known.
 
 ### Features
 
-- [ ] **Suppress alerts while a device is charging.** `BatteryStatusFlags` reads 0 for both
-      devices and its meaning is undecoded, so a mouse on a cable would still be nagged.
-      *Next action:* plug a device in, re-read the flag, compare.
 - [ ] **Keep a vanished device visible** with its last known level and a timestamp, rather than
       dropping it from the popover. A sleeping mouse currently looks like a missing one.
       *Next action:* decide how stale is too stale to show.
@@ -68,9 +66,11 @@ Nothing known.
 
 ## Watch list
 
-- **A notification refusal is close to permanent.** It is recorded per bundle ID in `ncprefs`,
-  never re-prompted, and has no reset command. Changing the bundle ID would be the only clean
-  escape, and would cost the current registration.
+- **Notification permission was granted late and the reason is not fully understood.** It read
+  as denied through several launches, then resolved to authorized once a non-debuggable
+  Release build had been installed for a while. Do not assume a Debug build can ever notify.
+- **macOS warns about these batteries too**, at 6% and 3%, from Control Center. Two systems now
+  nag about the same device. Apple's can be silenced separately in System Settings.
 - **Apple could rename or restructure the registry class.** Everything funnels through one
   service class; a change breaks discovery entirely. The failure is visible (no devices) rather
   than silent, which is the good version of this problem.

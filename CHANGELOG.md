@@ -20,6 +20,11 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 - Starts at login, with a toggle to turn that off.
 - Diagnostics: `--dump-devices`, `--dump-label` and `--simulate` for driving states by hand.
 - App icon: a Magic Mouse silhouette used as the battery gauge.
+- Charging state in the menu bar: a bolt beside the level, shown at any percentage rather than
+  only below the alert threshold, so a device put on a cable can be watched filling.
+- A test button in the popover, and a matching `--test-notification` argument.
+- Notifications carry a coloured gauge image matching the level, so the alert itself looks as
+  urgent as the reading. Titles escalate through low, very low and critical.
 
 ### Fixed
 - **Repeated alerts for a battery that had not moved.** A one-point rise in a Bluetooth reading
@@ -33,9 +38,10 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
   third-party dependencies and no background job.
 
 ### Known issues
-- Notification permission must be granted by hand in System Settings › Notifications. macOS
-  recorded a refusal during development and will not re-prompt.
-- Alerts still fire for a device that is charging. The charging flag is not yet decoded.
+- Charging detection reads an undocumented flag that has only ever been observed at rest.
+  Believed correct, not yet confirmed against a device on a cable.
+- macOS posts its own low-battery warnings at 6% and 3%, so two alerts arrive near the end
+  until Apple's are silenced separately in System Settings.
 
 ## [0.1.0] — 2026-04-21
 

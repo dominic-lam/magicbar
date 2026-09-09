@@ -24,7 +24,7 @@ struct MagicbarApp: App {
     }
 
     private var currentImage: NSImage {
-        guard let device = store.alertingDevice else { return MenuBarRenderer.idleImage() }
+        guard let device = store.menuBarDevice else { return MenuBarRenderer.idleImage() }
         return MenuBarRenderer.alertImage(device: device, color: store.color(for: device.percent))
     }
 }
@@ -49,7 +49,8 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             let idle = MenuBarRenderer.idleImage()
             NSLog("[magicbar] label idle size=\(idle.size) isTemplate=\(idle.isTemplate)")
 
-            let device = Device(id: "probe", name: "Magic Mouse", percent: 19, productID: 617)
+            let device = Device(id: "probe", name: "Magic Mouse", percent: 19,
+                                isCharging: false, statusFlags: 0, productID: 617)
             let alert = MenuBarRenderer.alertImage(device: device, color: .orange)
             NSLog("[magicbar] label alert size=\(alert.size) isTemplate=\(alert.isTemplate)")
 

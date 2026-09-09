@@ -20,8 +20,10 @@ enum MenuBarRenderer {
     /// correctly sized image and scales an oversized one, which is the usual cause of a
     /// soft-looking menu bar item.
     private static let contentHeight: CGFloat = 18
-    private static let symbolPointSize: CGFloat = 14
-    private static let fontSize: CGFloat = 12
+    private static let symbolPointSize: CGFloat = 16
+    /// 14pt, up from 12. The percentage sat noticeably smaller than the system clock beside
+    /// it, which made the one number the item exists to show the hardest thing on it to read.
+    private static let fontSize: CGFloat = 14
 
     /// Everything is fine: one glyph, no reading, no colour.
     ///
@@ -50,9 +52,9 @@ enum MenuBarRenderer {
 
         let configuration = NSImage.SymbolConfiguration(pointSize: symbolPointSize, weight: .regular)
             .applying(.init(paletteColors: [nsColor]))
-        let symbol = symbol(named: device.symbolCandidates,
-                            configuration: configuration,
-                            description: device.shortName)
+        let deviceSymbol = symbol(named: device.symbolCandidates,
+                                  configuration: configuration,
+                                  description: device.shortName)
 
         // Monospaced digits, so the item keeps a constant width as the number changes.
         // Proportional digits make the whole right-hand side of the menu bar twitch on
@@ -62,13 +64,25 @@ enum MenuBarRenderer {
             .foregroundColor: nsColor,
         ])
 
-        let symbolSize = symbol?.size ?? .zero
+        // A bolt when the device is on a cable, which is the whole charging cue. Drawn
+        // beside the gauge rather than inside it: at 8pt tall the bar has no room for a
+        // glyph that would still read as lightning.
+        let bolt: NSImage? = device.isCharging
+            ? Self.symbol(named: ["bolt.fill", "bolt"],
+                          configuration: NSImage.SymbolConfiguration(pointSize: fontSize - 2, weight: .bold)
+                             .applying(.init(paletteColors: [nsColor])),
+                          description: "charging")
+            : nil
+
+        let symbolSize = deviceSymbol?.size ?? .zero
+        let boltSize = bolt?.size ?? .zero
         let textSize = text.size()
-        let barWidth: CGFloat = 22
-        let barThickness: CGFloat = 8
+        let barWidth: CGFloat = 24
+        let barThickness: CGFloat = 9
         let gap: CGFloat = 4
         let height = contentHeight
-        let totalWidth = symbolSize.width + gap + barWidth + gap + textSize.width
+        let boltRun = bolt == nil ? 0 : boltSize.width + gap
+        let totalWidth = symbolSize.width + gap + boltRun + barWidth + gap + textSize.width
 
         // Captured as plain values: the drawing handler outlives this call.
         let percent = device.percent
@@ -76,12 +90,18 @@ enum MenuBarRenderer {
         let image = NSImage(size: NSSize(width: totalWidth, height: height), flipped: false) { _ in
             var x: CGFloat = 0
 
-            if let symbol {
-                symbol.draw(in: NSRect(x: x,
-                                       y: (height - symbolSize.height) / 2,
-                                       width: symbolSize.width,
-                                       height: symbolSize.height))
+            if let deviceSymbol {
+                deviceSymbol.draw(in: NSRect(x: x,
+                                             y: (height - symbolSize.height) / 2,
+                                             width: symbolSize.width,
+                                             height: symbolSize.height))
                 x += symbolSize.width + gap
+            }
+
+            if let bolt {
+                bolt.draw(in: NSRect(x: x, y: (height - boltSize.height) / 2,
+                                     width: boltSize.width, height: boltSize.height))
+                x += boltSize.width + gap
             }
 
             // Track, then fill. Rounded to match the popover bars, so the two readings of
@@ -122,6 +142,63 @@ enum MenuBarRenderer {
 
         image.isTemplate = false
         return image
+    }
+
+    /// The square gauge attached to a notification.
+    ///
+    /// Notification content has no tint API, so an attached image is the only way to make an
+    /// alert itself carry the urgency of the reading.
+    ///
+    /// **The urgency colour is the background, not the fill.** Filling only the level was
+    /// tried first and failed the whole purpose: at 5% the coloured part is a sliver a few
+    /// pixels tall, so the thumbnail read as plain white at exactly the reading that most
+    /// needed to look alarming. Flooding the tile means the colour is unmissable and the
+    /// silhouette still carries the level.
+    static func gaugeImage(device: Device, color: Color, size: CGFloat) -> NSImage {
+        let tint = NSColor(color)
+        let percent = device.percent
+        let charging = device.isCharging
+        let u = size / 256
+
+        return NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
+            let deep = tint.blended(withFraction: 0.30, of: .black) ?? tint
+            deep.setFill()
+            NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: size, height: size),
+                         xRadius: 56 * u, yRadius: 56 * u).fill()
+
+            let bodyW = 96 * u, bodyH = 168 * u, stroke = 12 * u
+            let body = NSRect(x: (size - bodyW) / 2, y: (size - bodyH) / 2, width: bodyW, height: bodyH)
+            let inset = stroke / 2 + 5 * u
+            let inner = body.insetBy(dx: inset, dy: inset)
+            let shell = NSColor(red: 0.98, green: 0.97, blue: 0.95, alpha: 1)
+
+            // Level in the shell colour against the tinted ground, so the reading stays
+            // legible whatever the urgency colour is.
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(roundedRect: inner, xRadius: inner.width / 2 - 2 * u, yRadius: 34 * u).addClip()
+            let level = CGFloat(min(max(percent, 0), 100)) / 100
+            let fillHeight = max(inner.height * level, percent > 0 ? 4 * u : 0)
+            if fillHeight > 0 {
+                shell.setFill()
+                NSBezierPath(rect: NSRect(x: inner.minX, y: inner.minY,
+                                          width: inner.width, height: fillHeight)).fill()
+            }
+            NSGraphicsContext.restoreGraphicsState()
+
+            let outline = NSBezierPath(roundedRect: body, xRadius: bodyW / 2, yRadius: 46 * u)
+            outline.lineWidth = stroke
+            shell.setStroke()
+            outline.stroke()
+
+            if charging, let bolt = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(pointSize: 44 * u, weight: .bold)
+                    .applying(.init(paletteColors: [shell]))) {
+                let b = bolt.size
+                bolt.draw(in: NSRect(x: (size - b.width) / 2, y: size * 0.14,
+                                     width: b.width, height: b.height))
+            }
+            return true
+        }
     }
 
     /// First symbol in the list that this macOS actually has.

@@ -35,6 +35,30 @@ struct PopoverView: View {
 
             Divider()
 
+            if !store.notificationsAllowed {
+                // The one failure the app cannot fix for itself. Saying so here, with the
+                // way out attached, beats a user wondering why alerts never arrive.
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Notifications are turned off")
+                        .font(.footnote)
+                        .fontWeight(.medium)
+                    Text("magicbar can watch the battery but cannot warn you.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Open Notification Settings") { store.openNotificationSettings() }
+                        .font(.footnote)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.14))
+                .cornerRadius(8)
+            }
+
+            Button("Send a test notification") { store.sendTestNotification() }
+                .font(.footnote)
+                .frame(maxWidth: .infinity)
+
             Toggle("Open at login", isOn: Binding(
                 get: { store.launchAtLogin },
                 set: { store.launchAtLogin = $0 }
@@ -72,6 +96,11 @@ private struct DeviceRow: View {
                     .foregroundStyle(.secondary)
                 Text(device.shortName)
                     .font(.callout)
+                if device.isCharging {
+                    Image(systemName: "bolt.fill")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
             }
 
             HStack(spacing: 8) {

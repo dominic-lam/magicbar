@@ -69,7 +69,20 @@ enum BatteryReader {
         // state colliding if two peripherals somehow share a name.
         let id = properties["SerialNumber"] as? String ?? name
 
-        return Device(id: id, name: name, percent: percent, productID: properties["ProductID"] as? Int)
+        // Undocumented. Every device observed while discharging reads 0, so any other
+        // value is treated as "on a cable". Logged whenever it is non-zero so the actual
+        // bit layout can be pinned down the first time a device is plugged in.
+        let flags = properties["BatteryStatusFlags"] as? Int ?? 0
+        if flags != 0 {
+            NSLog("%@", "[magicbar] BatteryStatusFlags=\(flags) on \(name) at \(percent)%")
+        }
+
+        return Device(id: id,
+                      name: name,
+                      percent: percent,
+                      isCharging: flags != 0,
+                      statusFlags: flags,
+                      productID: properties["ProductID"] as? Int)
     }
 }
 
@@ -94,15 +107,20 @@ enum SimulatedReadings {
             .split(separator: ",")
             .compactMap { pair -> Device? in
                 let parts = pair.split(separator: ":")
-                guard parts.count == 2, let percent = Int(parts[1].trimmingCharacters(in: .whitespaces)) else {
-                    return nil
-                }
+                guard parts.count == 2 else { return nil }
+                var value = parts[1].trimmingCharacters(in: .whitespaces)
+                let charging = value.hasSuffix("+")
+                if charging { value.removeLast() }
+                guard let percent = Int(value) else { return nil }
                 let name = parts[0].trimmingCharacters(in: .whitespaces)
                 // A numeric name is read as a ProductID, so `--simulate "617:9"` picks the
                 // same icon the real mouse would. Anything else is used as a display name.
                 let productID = Int(name)
                 let display = productID == 620 ? "Magic Keyboard" : productID == 617 ? "Magic Mouse" : name
-                return Device(id: name, name: display, percent: percent, productID: productID)
+                // A trailing "+" marks the device as charging: --simulate "617:40+"
+                return Device(id: name, name: display, percent: percent,
+                              isCharging: charging, statusFlags: charging ? 1 : 0,
+                              productID: productID)
             }
 
         current = devices.isEmpty ? nil : devices.sorted { $0.percent < $1.percent }
