@@ -43,9 +43,11 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 - **A charging device no longer hides a dying one.** Charging used to win the menu bar
   outright, so a keyboard on a cable at 90% hid a mouse at 4% while a notification called that
   same mouse critical. A device below the warn level now outranks a charging one.
-- **A sleeping device no longer cancels its own alarm.** A peripheral drops out of the system
-  entirely when it sleeps, which turned a red warning back into the calm idle glyph at the end
-  of the drain curve. The last reading is now kept and shown dimmed for half an hour.
+- **A low device that goes quiet no longer cancels its own alarm.** A peripheral drops out of
+  the system entirely when it sleeps, which turned a red warning back into the calm idle glyph
+  at the end of the drain curve. Its last reading is kept and shown dimmed for half an hour.
+  Only devices that were already low are remembered, so unpairing a healthy one removes it
+  from the list at once.
 - **The notification image collapsed every level at or below 6%** into an identical picture,
   the same fill-floor mistake already fixed in the menu bar.
 - Notification permission was re-checked every 5 seconds, an inter-process call about

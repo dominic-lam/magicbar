@@ -105,7 +105,7 @@ private struct DeviceRow: View {
                         .foregroundStyle(.green)
                 }
                 if device.isStale {
-                    Text("asleep · \(device.seenAgo)")
+                    Text("last seen \(device.seenAgo)")
                         .font(PopoverView.rowFont)
                         .foregroundStyle(.secondary)
                 }

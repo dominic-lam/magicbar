@@ -67,6 +67,22 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
+        // Walks device sets through the store to show which vanished devices are remembered.
+        if arguments.contains("--dump-retention") {
+            let store = BatteryStore()
+            func show(_ label: String, _ spec: String) {
+                SimulatedReadings.parseLaunchArguments(["x", "--simulate", spec])
+                store.refresh()
+                let listed = store.devices.map { "\($0.shortName) \($0.percent)%\($0.isStale ? " [remembered]" : "")" }
+                print("\(label.padding(toLength: 34, withPad: " ", startingAt: 0))\(listed.joined(separator: ", "))")
+            }
+            show("healthy mouse + keyboard", "617:61,620:61")
+            show("then mouse disappears", "620:61")
+            show("low mouse + keyboard", "617:8,620:61")
+            show("then mouse disappears", "620:61")
+            exit(0)
+        }
+
         if arguments.contains("--dump-label") {
             let idle = MenuBarRenderer.idleImage()
             NSLog("[magicbar] label idle size=\(idle.size) isTemplate=\(idle.isTemplate)")

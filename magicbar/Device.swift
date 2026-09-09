@@ -41,7 +41,8 @@ struct Device: Identifiable, Equatable {
     /// True when this is a remembered reading rather than a live one.
     var isStale: Bool = false
 
-    /// Rough age of a stale reading, for the popover.
+    /// Rough age of a stale reading, for the popover. Deliberately does not say *why* the
+    /// device is missing — asleep, switched off and unpaired are indistinguishable here.
     var seenAgo: String {
         let minutes = Int(Date.now.timeIntervalSince(lastSeen) / 60)
         if minutes < 1 { return "just now" }

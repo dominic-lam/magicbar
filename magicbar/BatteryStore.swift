@@ -62,15 +62,19 @@ final class BatteryStore: ObservableObject {
 
     /// Readings kept for devices that have dropped out of the registry.
     ///
-    /// A sleeping or switched-off peripheral disappears entirely, which used to mean an
-    /// alarming red item reverted to the calm idle glyph — the alarm silencing itself at the
-    /// end of the drain curve, which is the worst possible moment. A remembered reading is
-    /// shown instead, marked stale, until it is too old to be worth trusting.
+    /// A sleeping peripheral disappears entirely, which used to mean an alarming red item
+    /// reverted to the calm idle glyph — the alarm silencing itself at the end of the drain
+    /// curve, which is the worst possible moment.
+    ///
+    /// **Only devices that were already low are remembered.** Nothing in the registry
+    /// distinguishes "asleep" from "unpaired", so remembering every device meant a mouse
+    /// removed in Bluetooth settings sat in the list claiming to be asleep. Narrowing it to
+    /// devices worth warning about removes that for the ordinary case — a healthy device that
+    /// goes away simply goes away — and keeps the memory exactly where it was needed.
     private var lastSeen: [String: Device] = [:]
 
-    /// How long a vanished device keeps its last reading. Long enough to cover a mouse
-    /// sleeping between uses, short enough that a device left in a drawer stops being claimed
-    /// as news.
+    /// How long a vanished low device keeps its last reading. Long enough to cover a mouse
+    /// sleeping between uses, short enough that it stops being claimed as news.
     private let staleAfter: TimeInterval = 30 * 60
 
     private var firedLaunchTest = false
@@ -206,7 +210,15 @@ final class BatteryStore: ObservableObject {
 
         // Remember what is present, then re-add anything that has gone missing recently.
         let now = Date.now
-        for device in fresh { lastSeen[device.id] = device }
+        for device in fresh {
+            if device.percent < alertThreshold && !device.isCharging {
+                lastSeen[device.id] = device
+            } else {
+                // Healthy, or on a cable. If this one disappears there is nothing to warn
+                // about, so it should disappear from the list too.
+                lastSeen.removeValue(forKey: device.id)
+            }
+        }
         let present = Set(fresh.map(\.id))
         for (id, remembered) in lastSeen where !present.contains(id) {
             guard now.timeIntervalSince(remembered.lastSeen) < staleAfter else {
