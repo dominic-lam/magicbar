@@ -94,6 +94,10 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         content.title = "\(device.shortName) \(isTest ? "test alert" : urgency.word)"
         content.body = "\(device.percent)% remaining"
+        // Collapses a device's alerts into one expandable stack instead of a column of
+        // near-identical rows. A full drain can post ten of these; without grouping the user
+        // has ten separate things to dismiss.
+        content.threadIdentifier = device.id
         content.sound = sound == "Default"
             ? .default
             : UNNotificationSound(named: UNNotificationSoundName("\(sound).aiff"))

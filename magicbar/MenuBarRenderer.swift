@@ -204,12 +204,17 @@ enum MenuBarRenderer {
             shell.withAlphaComponent(0.30).setFill()
             NSBezierPath(roundedRect: strip, xRadius: stripH / 2, yRadius: stripH / 2).fill()
 
-            let fillW = max(strip.width * CGFloat(percent) / 100, percent > 0 ? stripH : 0)
+            // Floored at 1pt with the radius shrinking to match, exactly as the menu bar bar
+            // does. Flooring at the strip's own height — which this did — made every level at
+            // or below 5.9% draw identically, and the tile only appears below the nag
+            // threshold, so most of its live range collapsed. Same bug, second place.
+            let fillW = percent > 0 ? max(strip.width * CGFloat(percent) / 100, 1) : 0
             if fillW > 0 {
+                let radius = min(stripH / 2, fillW / 2)
                 shell.setFill()
                 NSBezierPath(roundedRect: NSRect(x: strip.minX, y: strip.minY,
                                                  width: fillW, height: stripH),
-                             xRadius: stripH / 2, yRadius: stripH / 2).fill()
+                             xRadius: radius, yRadius: radius).fill()
             }
 
             if let bolt {

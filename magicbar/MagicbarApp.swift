@@ -45,6 +45,28 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
         // of this app with no working example behind it, and it cannot be inspected from
         // a terminal any other way — a wrong `isTemplate` or a failed palette colour comes
         // out as a grey blob that looks deliberate.
+        // Walks a sequence of readings through the alert rule and prints each decision.
+        // Needs no notification permission, no hardware and no persistence, which is what
+        // makes the cadence checkable at all.
+        if let i = arguments.firstIndex(of: "--dump-cadence"), arguments.count > i + 1 {
+            let store = BatteryStore()
+            var announced: Int?
+            var count = 0
+            print("reading\tdecision\tannounced-after")
+            for token in arguments[i + 1].split(separator: ",") {
+                guard let pct = Int(token.trimmingCharacters(in: .whitespaces)) else { continue }
+                let decision = store.decide(percent: pct, lastAnnounced: announced)
+                switch decision {
+                case .notify: announced = pct; count += 1
+                case .rearm: announced = nil
+                case .stayQuiet: break
+                }
+                print("\(pct)%\t\(decision)\t\(announced.map(String.init) ?? "-")")
+            }
+            print("total alerts: \(count)")
+            exit(0)
+        }
+
         if arguments.contains("--dump-label") {
             let idle = MenuBarRenderer.idleImage()
             NSLog("[magicbar] label idle size=\(idle.size) isTemplate=\(idle.isTemplate)")
@@ -88,10 +110,19 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
 
         if arguments.contains("--dump-devices") {
             SimulatedReadings.parseLaunchArguments(arguments)
+            // Which device the menu bar picks, so the ranking rule can be checked from a
+            // terminal instead of by squinting at a screenshot.
+            let store = BatteryStore()
+            let chosen = store.menuBarDevice
+            print("menu bar: \(chosen.map { "\($0.shortName) \($0.percent)%\($0.isCharging ? " charging" : "")" } ?? "idle glyph")")
             for device in BatteryReader.read() {
                 NSLog("[magicbar] device name=\(device.name) pct=\(device.percent) id=\(device.id) productID=\(device.productID.map(String.init) ?? "nil") symbol=\(device.symbolCandidates.first ?? "none")")
                 print("\(device.name)\t\(device.percent)\t\(device.productID.map(String.init) ?? "-")\t\(device.id)")
             }
+            // UserDefaults writes are asynchronous, and exit(0) can outrun them — which made
+            // a scripted sequence of these probes look stateless and reported a working
+            // notification cadence as broken.
+            UserDefaults.standard.synchronize()
             // Deliberately exits before the notification centre is ever touched, so this
             // path stays usable from the bare executable inside the bundle.
             exit(0)

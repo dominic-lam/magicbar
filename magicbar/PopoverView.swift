@@ -20,6 +20,17 @@ struct PopoverView: View {
                 .font(Self.rowFont)
                 .fontWeight(.semibold)
 
+            if store.isSimulated {
+                // Simulated readings look exactly like real ones, which has already produced
+                // one false bug report against a forgotten test instance.
+                Text("Showing simulated readings, not your hardware.")
+                    .font(Self.rowFont)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.purple.opacity(0.18))
+                    .cornerRadius(6)
+            }
+
             if store.devices.isEmpty {
                 // Distinct from "everything is fine". A peripheral that is asleep or
                 // disconnected vanishes from the registry entirely, and saying so is better
@@ -70,6 +81,9 @@ struct PopoverView: View {
         // A `.window`-style MenuBarExtra does not size itself to anything sensible, so the
         // width is fixed here and the height left free.
         .frame(width: 340)
+        // Permission is re-read here rather than on the poll timer: it can only change while
+        // the user is away in System Settings, and checking it is an XPC round trip.
+        .onAppear { store.refreshAuthorizationNow() }
     }
 }
 
@@ -89,6 +103,11 @@ private struct DeviceRow: View {
                     Image(systemName: "bolt.fill")
                         .font(PopoverView.rowFont)
                         .foregroundStyle(.green)
+                }
+                if device.isStale {
+                    Text("asleep · \(device.seenAgo)")
+                        .font(PopoverView.rowFont)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -118,6 +137,8 @@ private struct DeviceRow: View {
                     .frame(width: 44, alignment: .trailing)
             }
         }
+        // A remembered reading is dimmed, so it never reads as live data.
+        .opacity(device.isStale ? 0.55 : 1)
     }
 }
 

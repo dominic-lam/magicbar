@@ -33,6 +33,22 @@ struct Device: Identifiable, Equatable {
     /// USB product ID. 617 is a Magic Mouse, 620 a Magic Keyboard, both verified here.
     let productID: Int?
 
+    /// When this reading was actually taken. A sleeping or disconnected peripheral drops out
+    /// of the registry entirely, so a remembered reading is shown rather than the device
+    /// silently vanishing — see `BatteryStore.refresh`.
+    var lastSeen: Date = .now
+
+    /// True when this is a remembered reading rather than a live one.
+    var isStale: Bool = false
+
+    /// Rough age of a stale reading, for the popover.
+    var seenAgo: String {
+        let minutes = Int(Date.now.timeIntervalSince(lastSeen) / 60)
+        if minutes < 1 { return "just now" }
+        if minutes < 60 { return "\(minutes)m ago" }
+        return "\(minutes / 60)h ago"
+    }
+
     /// SF Symbol candidates for this device, best first.
     ///
     /// ProductID leads because it is stable and machine-assigned; the name is only a

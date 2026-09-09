@@ -60,6 +60,19 @@ final class BatteryStore: ObservableObject {
         return ["Default"] + names
     }()
 
+    /// Readings kept for devices that have dropped out of the registry.
+    ///
+    /// A sleeping or switched-off peripheral disappears entirely, which used to mean an
+    /// alarming red item reverted to the calm idle glyph — the alarm silencing itself at the
+    /// end of the drain curve, which is the worst possible moment. A remembered reading is
+    /// shown instead, marked stale, until it is too old to be worth trusting.
+    private var lastSeen: [String: Device] = [:]
+
+    /// How long a vanished device keeps its last reading. Long enough to cover a mouse
+    /// sleeping between uses, short enough that a device left in a drawer stops being claimed
+    /// as news.
+    private let staleAfter: TimeInterval = 30 * 60
+
     private var firedLaunchTest = false
     private var timer: Timer?
     private let watcher = RegistryWatcher()
@@ -162,19 +175,89 @@ final class BatteryStore: ObservableObject {
     /// device, and only once it is under the alert threshold. `devices` is sorted
     /// lowest-first, so that case is simply the head of the list.
     var menuBarDevice: Device? {
+        // A dying device outranks a charging one. Charging used to win outright, which meant
+        // a keyboard on a cable at 90% hid a mouse at 4% — while a notification was
+        // simultaneously calling that mouse critical. The app contradicted itself on screen.
+        // Charging still takes over, but only when nothing is actually running out.
+        if let dying = devices.first(where: { !$0.isCharging && $0.percent < alertThreshold }) {
+            return dying
+        }
         if let charging = devices.first(where: { $0.isCharging }) { return charging }
-        guard let lowest = devices.first, lowest.percent < alertThreshold else { return nil }
-        return lowest
+        return nil
+    }
+
+    /// A second low device, so "one is dying" and "both are dying" are not the same picture.
+    var secondaryLowDevice: Device? {
+        let low = devices.filter { !$0.isCharging && $0.percent < alertThreshold }
+        return low.count > 1 ? low[1] : nil
+    }
+
+    /// Re-reads notification permission. Called when the popover opens, not on every tick:
+    /// `getNotificationSettings` is an XPC round trip to `usernoted`, and doing it on a
+    /// 5-second timer is some seventeen thousand inter-process calls a day to keep one
+    /// checkbox honest.
+    func refreshAuthorizationNow() {
+        notifier.refreshAuthorization()
+        notificationsAllowed = notifier.isAuthorized
     }
 
     func refresh() {
-        notifier.refreshAuthorization()
-        notificationsAllowed = notifier.isAuthorized
-        devices = BatteryReader.read()
+        var fresh = BatteryReader.read()
+
+        // Remember what is present, then re-add anything that has gone missing recently.
+        let now = Date.now
+        for device in fresh { lastSeen[device.id] = device }
+        let present = Set(fresh.map(\.id))
+        for (id, remembered) in lastSeen where !present.contains(id) {
+            guard now.timeIntervalSince(remembered.lastSeen) < staleAfter else {
+                lastSeen.removeValue(forKey: id)
+                continue
+            }
+            var stale = remembered
+            stale.isStale = true
+            // A remembered device is never reported as charging: the cable state is exactly
+            // what we can no longer see.
+            fresh.append(Device(id: stale.id, name: stale.name, percent: stale.percent,
+                                isCharging: false, statusFlags: 0, productID: stale.productID,
+                                lastSeen: remembered.lastSeen, isStale: true))
+        }
+        fresh.sort { $0.percent < $1.percent }
+        // Publishing an identical list still fires objectWillChange, which recomposes the
+        // menu bar image every 5 seconds forever. `Device` is Equatable precisely so this
+        // comparison is available.
+        if fresh != devices { devices = fresh }
         if devices.first(where: { $0.id == testDeviceID }) == nil {
             testDeviceID = devices.first?.id ?? ""
         }
-        for device in devices { evaluateNotification(for: device) }
+        for device in devices where !device.isStale { evaluateNotification(for: device) }
+    }
+
+    /// How far a level must fall before it is worth saying again.
+    ///
+    /// Between the two thresholds a drop is news but not an emergency, so it reports every
+    /// five points. Below the lower threshold every single point is announced, which is the
+    /// deliberate nagging the app exists for.
+    private func notifyStep(for percent: Int) -> Int {
+        percent < nagThreshold ? 1 : 5
+    }
+
+    /// What to do about a reading, given the level last announced for that device.
+    ///
+    /// Pure, and deliberately separate from delivery. The rule used to be entangled with
+    /// notification authorization and `UserDefaults`, which made it untestable: a scripted
+    /// check reported the cadence broken when what had actually happened is that
+    /// authorization never resolved in a short-lived probe, so nothing was ever recorded.
+    enum AlertDecision: Equatable {
+        case notify
+        case rearm      // a real recharge; forget what was announced
+        case stayQuiet
+    }
+
+    func decide(percent: Int, lastAnnounced: Int?) -> AlertDecision {
+        if let lastAnnounced, percent >= lastAnnounced + rechargeDelta { return .rearm }
+        guard percent < alertThreshold else { return .stayQuiet }
+        guard let lastAnnounced else { return .notify }
+        return percent <= lastAnnounced - notifyStep(for: percent) ? .notify : .stayQuiet
     }
 
     /// Fires at most one alert per device per call, and only on a genuine new low.
@@ -189,34 +272,17 @@ final class BatteryStore: ObservableObject {
             return
         }
 
-        let mark = lowWaterMarks[device.id]
-
-        // A real recharge re-arms this device. Anything smaller is treated as noise and
-        // deliberately leaves the mark where it is.
-        if let mark, device.percent >= mark + rechargeDelta {
-            lowWaterMarks[device.id] = device.percent
+        switch decide(percent: device.percent, lastAnnounced: lowWaterMarks[device.id]) {
+        case .rearm:
+            lowWaterMarks.removeValue(forKey: device.id)
             persistMarks()
-            return
-        }
-
-        guard device.percent < nagThreshold else {
-            // Above the nag line there is nothing to announce, but the mark still tracks
-            // downward so the first alert below the line is not a duplicate of a level
-            // already passed silently.
-            if mark == nil || device.percent < mark! {
-                lowWaterMarks[device.id] = device.percent
-                persistMarks()
-            }
-            return
-        }
-
-        // Below the nag line: notify only on a level never announced before.
-        //
-        // The mark moves only if the alert was actually accepted. Recording it regardless
-        // would mean an alert dropped for a reason outside the user's control — chiefly
-        // authorization not having resolved yet on the first poll after launch — was lost
-        // for good rather than retried.
-        if mark == nil || device.percent < mark! {
+        case .stayQuiet:
+            break
+        case .notify:
+            // The mark moves only if the alert was accepted. Recording it regardless would
+            // lose an alert dropped for a reason outside the user's control — chiefly
+            // authorization not having resolved yet on the first poll after launch — rather
+            // than retrying it on the next tick.
             if notifier.notifyLowBattery(device: device, urgency: urgency(for: device.percent),
                                          sound: alertSound) {
                 lowWaterMarks[device.id] = device.percent
@@ -273,6 +339,11 @@ final class BatteryStore: ObservableObject {
     /// republish to this object's observers, so the popover would never notice the user
     /// granting permission in System Settings.
     @Published private(set) var notificationsAllowed = false
+
+    /// True while the app is showing injected readings rather than real hardware. Surfaced in
+    /// the popover: the two are otherwise indistinguishable, which has already produced one
+    /// false bug report against a forgotten test instance.
+    var isSimulated: Bool { SimulatedReadings.isActive }
 
     func openNotificationSettings() { notifier.openNotificationSettings() }
 

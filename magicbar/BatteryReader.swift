@@ -103,6 +103,11 @@ enum BatteryReader {
 enum SimulatedReadings {
     private(set) static var current: [Device]?
 
+    /// True while the app is showing injected readings. Surfaced in the popover, because a
+    /// simulated state is otherwise indistinguishable from the real hardware — which has
+    /// already caused one false bug report against a leftover test instance.
+    static var isActive: Bool { current != nil }
+
     /// Parses `--simulate "Magic Mouse:19,Magic Keyboard:8"` out of the process arguments.
     ///
     /// Names are matched loosely so the argument stays short — "mouse:19" is enough. The
