@@ -1,12 +1,11 @@
 # magicbar — Feature Catalogue
 
-Every feature by status, whatever its state. New ideas go **here**, not in `TODO.md`.
-Sequencing is in [`ROADMAP.md`](./ROADMAP.md); open work with a known next action is in
-[`TODO.md`](./TODO.md); technical detail is in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is in
+[`ROADMAP.md`](./ROADMAP.md); open work with a known next action is in [`TODO.md`](./TODO.md).
 
 **Statuses:** Shipped · Committed · Idea · Blocked · Declined
 
-*Created 2026-09-08.*
+*Rewritten 2026-09-08.*
 
 ---
 
@@ -14,85 +13,84 @@ Sequencing is in [`ROADMAP.md`](./ROADMAP.md); open work with a known next actio
 
 | Feature | Status | Next step |
 |---|---|---|
-| Multi-device monitoring (mouse + keyboard) | Committed | Decide the state file format |
-| Configurable device display name | Committed | Add a constant to `config.sh` |
-| Thinned sub-10% thresholds | Idea | Decide whether every integer is wanted |
-| Both devices in the menu bar | Idea | Needs multi-device monitoring first |
-| Notification actions | Idea | Confirm `terminal-notifier` support |
+| Suppress alerts while charging | Committed | Decode `BatteryStatusFlags` with a device plugged in |
+| Keep a sleeping device visible | Committed | Decide the staleness cutoff |
+| App icon | Committed | Adapt Range's Core Graphics battery script |
+| Both devices in the menu bar at once | Idea | Decide how wide is too wide |
+| Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
+| Sleep/wake awareness | Idea | Measure how late the first post-wake reading is |
 
 ---
 
 ## Shipped
 
-### Single-device battery read — v0.1.0
+### Native menu bar app — v1.0.0
 
-Reads `BatteryPercent` from the IOKit registry for one configured ProductID, via `ioreg` piped into a
-Python `plistlib` parser. Split into a testable stdin-driven parser and a thin hardware wrapper.
-Detail in `ARCHITECTURE.md` § Core Tech.
+SwiftUI `MenuBarExtra` in window style. Two label states, both drawn as `NSImage` through
+AppKit because SwiftUI cannot colour a menu bar label. Detail in `ARCHITECTURE.md`.
 
-### Menu bar percentage — v0.1.0
+### Automatic device discovery — v1.0.0
 
-SwiftBar plugin on a 5-minute refresh. Colour-coded: red at 10% or below, orange at 20% or below,
-default above. Renders a neutral placeholder when the device is absent rather than an error.
+Every peripheral publishing a battery in the IO registry is picked up and named from the
+system. Replaced the hardcoded product IDs, and delivered keyboard support as a side effect
+rather than as a feature.
 
-### Threshold notifier — v0.1.0
+### Low-water-mark alerting — v1.0.0
 
-launchd job on a 15-minute interval. Fires one notification per crossed threshold via
-`terminal-notifier`. Thresholds are 20, 15, 10, then every integer from 9 down to 1.
+One notification per percent lost below the nag threshold, and none at all for a reading that
+wobbles upward. Replaced the threshold ladder that caused the original alert cascade.
 
-### Install and uninstall — v0.1.0
+### Adjustable thresholds — v1.0.0
 
-Idempotent installer with preflight checks, dependency install, template rendering and agent loading.
-Uninstaller reverses it and prompts before deleting state.
+Both live in the popover and persist in `UserDefaults`, replacing `config.sh`.
+
+### Launch at login — v1.0.0
+
+`SMAppService`, registered on first launch, revocable from the popover.
 
 ---
 
 ## Committed
 
-### Multi-device monitoring
+### Suppress alerts while charging
 
-**The original point of the project, still unbuilt.** Watch the Magic Keyboard alongside the Magic
-Mouse. `MAGIC_KEYBOARD_PRODUCT_ID` already exists in `config.sh` and is referenced nowhere.
+A device on a cable is still nagged about. `BatteryStatusFlags` reads 0 for both devices and its
+bit meanings are undecoded — decoding needs a device actually plugged in.
 
-**Blocked on state design.** `$STATE_FILE` is one bare integer with no device identity, so two devices
-cannot share it. Options, undecided:
+### Keep a sleeping device visible
 
-- One file per device (`~/.magicbar/state.617`) — trivial, no format to parse, no migration.
-- One key-value file — one read, but needs parsing and a migration path from the bare integer.
+A disconnected peripheral vanishes from the registry, so it vanishes from the popover, which
+looks like a bug rather than a sleeping mouse. Show the last known level with a timestamp
+instead. Needs a staleness cutoff decision.
 
-Depends on the configurable display name below, otherwise a keyboard alert says "Magic Mouse".
+### App icon
 
-### Configurable device display name
-
-The notification title and SwiftBar dropdown hardcode "Magic Mouse". A display-name constant beside
-`MENU_BAR_DEVICE_ICON` in `config.sh` fixes it. Small, but a prerequisite for anything multi-device.
+`Assets.xcassets/AppIcon.appiconset` is empty. Range's `scripts/render-icon.swift` already
+draws a battery with Core Graphics and takes fill colours as arguments.
 
 ---
 
 ## Idea
 
-Nobody has committed to these.
+### Both devices in the menu bar at once
 
-### Thin out the sub-10% thresholds
-
-Below 10% every integer fires, so the last stretch of battery life produces nine notifications. Fewer
-checkpoints, say 8 / 5 / 2, would be quieter. Counter-argument: at that level the user genuinely does
-want nagging. Trivial to change — it is one array in `config.sh`.
-
-### Both devices in the menu bar
-
-One SwiftBar line showing mouse and keyboard together, or the lower of the two. Needs multi-device
-monitoring first, and a decision about menu bar width.
+Currently the lower device wins and the other is one click away. Showing both is wider and
+was explicitly not chosen, but it would remove the click.
 
 ### Notification actions
 
-A "Remind me later" or "Snooze" button on the alert. `terminal-notifier` supports actions; whether
-they survive being fired from launchd is unconfirmed.
+A "snooze" button on the alert. Whether actions behave from an agent app with no Dock icon is
+unverified.
 
-### Live-hardware smoke test
+### Sleep/wake awareness
 
-A test that reads the real registry and asserts something plausible comes back, catching an IOKit
-schema change that the static mock cannot. Would have to skip cleanly when no device is present.
+After a long sleep the first reading is up to a poll interval late. An `NSWorkspace`
+wake observer would make it immediate.
+
+### Charge-rate estimate
+
+"About 3 days left" rather than a percentage, from the observed drain rate. Needs history,
+which nothing currently keeps.
 
 ---
 
@@ -100,8 +98,10 @@ schema change that the static mock cannot. Would have to skip cleanly when no de
 
 Nothing.
 
----
-
 ## Declined
 
-Nothing yet. Record rejected ideas here with the reason, so they are not re-proposed.
+### Configuration file
+
+Considered and rejected during the rewrite. The two thresholds are the only settings, and a
+popover control beats a file that needs a re-install to take effect — which is exactly what
+the bash version required.

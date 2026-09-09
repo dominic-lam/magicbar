@@ -1,190 +1,202 @@
 # magicbar — Architecture & Technical Details
 
-Core tech, data flow, conventions, known limitations. Open work lives in [`TODO.md`](./TODO.md);
-feature descriptions in [`FEATURES.md`](./FEATURES.md); what shipped in [`PROGRESS.md`](./PROGRESS.md).
+Open work is in [`TODO.md`](./TODO.md); feature status in [`FEATURES.md`](./FEATURES.md);
+history in [`PROGRESS.md`](./PROGRESS.md).
 
-*Written 2026-09-08 against the initial scaffold (`f0e168b`) — nothing here has changed since the repo was created.*
-
----
-
-## Core Tech — How It Works
-
-### Reading a battery level (verified 2026-09-08)
-
-macOS exposes peripheral battery levels through the IOKit registry. The only supported way to reach
-them without writing an IOKit client in Swift or Objective-C is the `ioreg` CLI:
-
-```
-ioreg -r -k BatteryPercent -a
-```
-
-That emits an XML plist of every device publishing a `BatteryPercent` key. Each device dict carries a
-`ProductID`, which is how a specific peripheral is picked out.
-
-Parsing is done in Python via `plistlib` rather than in bash, because `ioreg`'s XML has enough shape
-variation that text munging is unreliable. Notably a single match can arrive as a bare dict rather than
-a one-element array, which the parser normalizes.
-
-### Known ProductIDs
-
-| Device | ProductID | Status |
-|---|---|---|
-| Magic Mouse 2/3 | 617 | Verified on this machine |
-| Magic Keyboard | 620 | Verified on this machine 2026-09-08 |
-
-`config.sh` still labels 620 as unverified. That comment is stale and should be corrected.
-
-Anyone on different hardware should run the `ioreg` command above and read their own values.
-
-### The shared library
-
-`lib/read_battery.sh` exposes two functions, deliberately split:
-
-- `parse_battery_percent <product_id>` — reads a plist from **stdin**, prints the integer percentage
-  for the first device matching that ProductID. Exit 0 on success, exit 1 on no match or malformed
-  input. Never writes to stderr. This is the testable half; it touches no hardware.
-- `read_battery_percent <product_id>` — wraps `ioreg | parse_battery_percent`. This is what real
-  consumers call.
-
-The file is **sourced, not executed**, and deliberately omits `set -euo pipefail` so the caller owns
-its own error discipline.
-
-`ioreg`'s stderr is discarded because Bluetooth churn (disconnects, pairing events) leaks warnings
-that would otherwise fill the launchd log with noise.
-
-### Data flow
-
-```
-                    ioreg -r -k BatteryPercent -a
-                                │
-                                ▼
-                ┌──────────────────────────────────┐
-                │  lib/read_battery.sh             │
-                │    parse_battery_percent <pid>   │  ← testable, stdin-driven
-                │    read_battery_percent  <pid>   │  ← consumers call this
-                └──────────────────────────────────┘
-                         ▲                    ▲
-                         │                    │
-          ┌──────────────┴──────┐     ┌───────┴────────────┐
-          │ bin/battery_alert.sh│     │ swiftbar/magicbar  │
-          │   launchd, 15m      │     │   SwiftBar, 5m     │
-          │   threshold notify  │     │   menu bar text    │
-          │   stateful          │     │   stateless        │
-          └─────────────────────┘     └────────────────────┘
-```
-
-Two consumers, one library. They do not know about each other — removing one leaves the other working.
+*Rewritten 2026-09-08 for the Swift app. The bash architecture this replaced is at the
+`bash-final` tag.*
 
 ---
 
-## The notifier state machine
+## Reading a battery
 
-`bin/battery_alert.sh` runs on a 15-minute launchd interval and fires at most one notification per run.
+### The route that does not work, and why it is documented
 
-**State is the threshold last fired at, not the battery reading.** `$STATE_FILE` holds a single bare
-integer with no device identity. The two values coincide below 10% only because every integer there is
-its own threshold; above 10% they diverge (a drop straight to 14% stores 20, not 14).
+`IOPSCopyPowerSourcesInfo` plus `IOPSCopyPowerSourcesList` is the public, documented power
+source API, and it was tried first because a documented interface beats a registry walk.
 
-Each run walks `NOTIFICATION_THRESHOLDS` in descending order and fires on the first `T` where the
-battery is at or below `T` **and** `T` is below the stored value, then breaks.
+Measured on this machine 2026-09-08: it returns **zero** power sources.
 
-A reading **above** the stored value is treated as a recharge: state resets to 101 and every threshold
-re-arms. See § Known limitations — this is the source of a real bug.
+Bluetooth accessories are a separate power-source type. `pmset -g accps` can list them, but it
+reaches them through `IOPSCopyPowerSourcesByType(kIOPSAccessoryType)` — and neither that
+function nor that constant appears anywhere in the public SDK. Using it would mean `dlsym` and
+a hardcoded type string, which is strictly more fragile than the registry, not less.
 
-An unreadable device causes a silent exit with no state mutation. That is the normal case for a
-sleeping or disconnected peripheral, not an error.
+This is written down so the next person does not spend the same hour rediscovering it.
 
----
+### The route that works
 
-## Install-time template rendering
+`BatteryReader` matches `AppleDeviceManagementHIDEventService`, the class every Apple HID
+peripheral with a cell publishes under, then reads each service's properties.
 
-`launchd/*.plist.template` and `swiftbar/*.sh.template` are not runnable as-is. `install.sh` renders
-them with `sed`, substituting three placeholders:
+A device qualifies when it has `HasBattery == true` **and** an integer `BatteryPercent`. Both
+checks matter: the first excludes peripherals that publish the service without a cell, the
+second excludes one that has a cell but is not currently reporting, which is what a sleeping
+mouse looks like.
 
-| Placeholder | Becomes |
+Results are sorted lowest-first, so "the device that matters" is always the head of the list
+and the menu bar and popover cannot disagree about ordering.
+
+**Ownership.** `IOServiceMatching` returns +1 and `IOServiceGetMatchingServices` consumes it,
+so the matching dictionary must not be released — doing so is a double release. The iterator,
+each `io_object_t` from `IOIteratorNext`, and each properties dictionary all need releasing;
+the middle one is the one that gets forgotten.
+
+### What the registry gives us for free
+
+| Field | Used for |
 |---|---|
-| `{{INSTALL_DIR}}` | Absolute path of this repo |
-| `{{LAUNCHD_LABEL}}` | `LAUNCHD_LABEL` from `config.sh` |
-| `{{HOME}}` | `$HOME` |
+| `Product` | display name, so no device name is hardcoded anywhere |
+| `BatteryPercent` | the level |
+| `HasBattery` | qualification |
+| `SerialNumber` | stable identity for persisted state |
+| `ProductID` | icon selection only |
 
-Rendered output goes to `~/Library/LaunchAgents/` and the SwiftBar plugins folder.
+**`Product` is user-editable and its punctuation is inconsistent.** On this machine the
+keyboard uses an ASCII apostrophe and the mouse uses U+2019. Never split it on punctuation and
+never use it for identity.
 
-**The rendered copies bake in this repo's absolute path.** Moving or renaming the repo after install
-silently breaks both consumers — they keep pointing at the old location. Re-run `./install.sh` after
-any move. Editing `config.sh` also requires a re-install before the rendered artifacts pick it up.
+Identity is `SerialNumber`, the Bluetooth address, which is stable across reconnects and does
+not collide between two devices of the same model the way a shared product ID would.
 
 ---
 
-## Coding conventions
+## The notification rule
 
-- `config.sh` is sourced, never executed. Every user-editable constant lives there and is read by
-  `install.sh`, the notifier, and the SwiftBar plugin.
-- Both consumers set `set -euo pipefail` themselves and call the library with `|| true`, because a
-  missing device is expected rather than exceptional.
-- The notifier prepends both Homebrew prefixes to `PATH`. launchd supplies a minimal environment that
-  excludes Homebrew, so `terminal-notifier` will not resolve without it.
-- Sources carry `# shellcheck source=` directives, but shellcheck is not installed and not in CI.
+Per device, the store keeps the **lowest level seen since the last real recharge**.
 
-### Tool choices, and why they are not negotiable
+An alert fires when a reading is below the nag threshold **and** below that mark. The mark then
+moves down. A rise only resets the mark when it clears `rechargeDelta`, currently 5 points.
 
-- **`ioreg`** — the only supported route to peripheral `BatteryPercent` short of a full IOKit client.
-- **`launchd`, not `cron`** — macOS has deprecated cron, and cron-fired notifications do not reliably
-  reach Notification Center.
-- **`terminal-notifier`, not `osascript`** — osascript notifications fired from launchd have no owning
-  app bundle and are dropped silently on recent macOS. Do not "simplify" this away.
-- **SwiftBar** — turns a stdout protocol into a menu bar item with no boilerplate.
+### Why not the obvious thing
+
+The bash implementation stored the *threshold* it last fired at and treated any reading above
+it as a recharge. A one-point Bluetooth wobble therefore looked like a charge, re-armed the
+entire ladder, and produced an alert per tick all the way back down — six notifications for a
+battery sitting still at 7%, reproduced before the rewrite.
+
+Storing the lowest *reading* instead makes that impossible: noise cannot re-arm anything, and
+"notify on every percent lost" falls out directly rather than needing a ladder of thresholds.
+
+Verified 2026-09-08 by walking a synthetic sequence:
+
+| Reading | Alert | Why |
+|---|---|---|
+| 25, 12 | no | above the nag threshold |
+| 9 | **yes** | first below it |
+| 9 again | no | already announced |
+| 8 | **yes** | new low |
+| 9 | no | one-point blip, not a recharge |
+| 8 | no | already announced |
+| 30 | no | real recharge, re-arms |
+| 9 | **yes** | armed again |
+
+---
+
+## Drawing the menu bar
+
+Two states, drawn differently on purpose.
+
+**Idle** is the `magicmouse` symbol, `isTemplate = true`, so the system inverts it for light and
+dark menu bars. No reading, no colour.
+
+**Alert** composes the device's symbol, a rounded level bar and the percentage into one image,
+`isTemplate = false`, so the colour survives.
+
+That flag is load-bearing in both directions. A template image is *meant* to be repainted to the
+system tint, which is right for a monochrome glyph and destroys a coloured one. Symbols come
+back from `NSImage(systemSymbolName:)` already marked as templates, so a composed image can
+inherit `true` and silently grey out. It is set explicitly on both paths.
+
+### Why AppKit and not SwiftUI
+
+`MenuBarExtra` repaints a `Text` label to the flat system tint whatever `.foregroundColor`
+says, and `ImageRenderer` produces a black glyph mask rather than coloured text. Both were
+measured in Range. AppKit's own drawing path has always honoured an explicit `NSColor`.
+
+### Why not `lockFocus`
+
+Apple deprecates it as "incompatible with resolution-independent drawing": it snapshots at the
+main screen's scale at the moment of the call. `NSImage(size:flipped:drawingHandler:)`
+re-invokes the handler per backing scale instead. The handler may run later and repeatedly, so
+it captures values rather than references.
+
+### Sizes
+
+Content is drawn 18pt tall against a status bar thickness of 22pt, measured and logged at
+launch. Drawing at full thickness looks clipped; the bar pads a correctly sized image and
+scales an oversized one, which is the usual cause of a soft-looking menu bar item.
+
+The percentage uses `monospacedDigitSystemFont`. With proportional digits the item's width
+changes with every reading and the whole right-hand side of the menu bar twitches.
+
+### Symbols
+
+`magicmouse` and `keyboard` were confirmed present on this machine. `trackpad` and
+`magicmouse.radiowaves.left.and.right` **do not exist** — do not reach for them. Selection is by
+product ID first, since names are user-editable, with a name check as fallback and a chain
+ending at `questionmark.circle`. Which tier resolved is logged, because a silently degraded
+icon is otherwise invisible from a terminal.
+
+---
+
+## Notifications
+
+A real app bundle owns its own notifications, which is why `terminal-notifier` is gone.
+
+**A Debug build cannot get authorization.** It carries `com.apple.security.get-task-allow`,
+marking it debuggable, and macOS will not grant notification permission to a process that could
+have code injected into it. Release with `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` produces a
+bundle with only the sandbox entitlement.
+
+**A refusal is close to permanent.** It is recorded per bundle ID in
+`~/Library/Preferences/com.apple.ncprefs.plist`, `requestAuthorization` never re-prompts, and
+notifications live outside TCC so there is no reset command. The bundle ID must be right the
+first time. The current status is logged at every launch because that is the only way to see it.
+
+**The popover makes the app frontmost**, and macOS suppresses notifications from a frontmost
+app. `Notifier` implements `UNUserNotificationCenterDelegate` returning `[.banner, .list,
+.sound]`, which keeps an alert visible in exactly the window where the user is looking at
+battery levels. `.alert` is deprecated in favour of `.banner` and `.list`.
+
+`UNUserNotificationCenter.current()` raises and terminates the process when there is no bundle
+identifier, so every entry point is guarded.
+
+---
+
+## Launch at login
+
+`SMAppService.mainApp`, registered once on first launch and revocable from the popover or from
+System Settings.
+
+Registration binds to the app's **current path**, so the app has to live somewhere permanent.
+Registering from a build directory leaves a dangling login item as soon as that directory is
+cleaned. Status is logged at launch as the only terminal-visible signal.
 
 ---
 
 ## Testing
 
-`tests/test_read_battery.sh` is flat bash with a local `assert_eq` helper. No framework, no runner, no
-single-test flag — comment out cases to isolate one. It exercises `parse_battery_percent` only, against
-a hand-written mock plist covering three ProductIDs.
+There is no test target. The app is verified by driving it from a terminal, which is the same
+constraint that shapes the diagnostics: anything unobservable logs itself, anything that needs
+driving has a launch argument.
 
-Coverage: matching ID, second matching ID, unknown ID (empty stdout + exit 1), malformed input
-(empty stdout + exit 1).
+`--simulate` injects readings, because battery levels cannot be dialled to order and waiting for
+a device to reach 19% is not a strategy. `--dump-devices` prints discovery. `--dump-label`
+prints the rendered image's size, template flag and a colour sampling, which is how the alert
+image was confirmed to be genuinely coloured rather than a grey blob.
 
-`read_battery_percent`, the notifier's threshold logic, `install.sh` and `uninstall.sh` are untested.
-
-Last run 2026-09-08: 6 assertions, all passing.
+**Known limitation of the label sampling:** `tiffRepresentation` rasterizes at 1x, so it proves
+colour and template state but not the Retina behaviour, which only happens when the image is
+actually displayed.
 
 ---
 
-## Known limitations
+## Known gaps
 
-Each of these is real, reproduced, and open. See [`TODO.md`](./TODO.md) for the work items.
-
-### Only one device is ever monitored
-
-`MENU_BAR_DEVICE_PRODUCT_ID` drives **both** consumers despite its name, and points at the mouse.
-`MAGIC_KEYBOARD_PRODUCT_ID` is defined in `config.sh` and referenced nowhere.
-
-Adding a second device is not a one-liner: `$STATE_FILE` holds one bare integer with no device
-identity, so per-device state has to exist first.
-
-### Device names are hardcoded in user-facing strings
-
-The notification title says "Magic Mouse Low" and the SwiftBar dropdown says "Magic Mouse", regardless
-of which ProductID is configured. Repointing the config at another device makes both lie.
-
-### Changing `LAUNCHD_LABEL` breaks the installer
-
-`install.sh` derives the *template source path* from `LAUNCHD_LABEL`:
-
-```bash
-PLIST_TEMPLATE="$INSTALL_DIR/launchd/${LAUNCHD_LABEL}.plist.template"
-```
-
-The template on disk is named after the default label, so changing the label makes the installer look
-for a file that does not exist and exit. The label should substitute into the plist body only, never
-select the source file. `README.md` currently invites users to change it.
-
-### A one-point upward blip re-arms every threshold
-
-The recharge check compares a live percentage against a stored *threshold*. A reading that rises by one
-looks like a recharge, resets state to 101, and the ladder walks down again — one notification per
-15-minute tick, most of them reporting a battery that never moved. Bluetooth levels do wobble by a point.
-
-Reproduced 2026-09-08 against the predecessor script, whose logic is character-for-character identical:
-a battery sitting at 7% with a single blip to 8% produced six notifications over ninety minutes.
+- **Charging state is ignored.** `BatteryStatusFlags` reads 0 for both devices and its meaning
+  was not determined, so a device on a cable will still be nagged about. Needs a device plugged
+  in to decode.
+- **No sleep or wake handling.** After a long sleep the first reading is up to a minute late.
+- **A vanished device disappears from the popover** rather than showing a last-known value with
+  a timestamp.

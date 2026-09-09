@@ -18,3 +18,10 @@ Icon?
 
 # Machine-specific migration notes (decommissioning the ad-hoc install)
 MIGRATION.md
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcscmblueprint

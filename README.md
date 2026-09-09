@@ -2,99 +2,104 @@
 
 > Because macOS won't tell you your Magic Mouse is dying until it already has.
 
+A macOS menu bar app that watches the battery in every Apple peripheral you own and gets
+progressively louder as one runs down.
+
 ## What it does
 
-magicbar reads Apple peripheral battery levels from the macOS I/O Kit registry and surfaces them two ways: a **SwiftBar menu bar icon** that shows the current percentage (color-coded as it drains), and a **launchd-scheduled notifier** that fires a macOS notification each time the battery crosses a configured threshold (20%, 15%, 10%, then every integer below). Both consumers share a single battery-read library, so there's exactly one place to fix if Apple changes the IOKit schema.
+**Everything healthy** — one small mouse glyph in the menu bar. It carries no reading and no
+colour. Its only job is to tell you the app is alive. Click it to see every device's level.
 
-![Menu bar icon showing mouse battery percentage](docs/menubar.png)
+**A device drops below 20%** — the menu bar item becomes *that device's* icon, a level bar and
+its percentage, in orange. Below 10% it turns red. If both devices are low, the lower one is
+shown and the other stays one click away.
+
+**A device drops below 10%** — every further percent lost produces a notification. That is
+deliberate nagging: at that point you want to be bothered.
+
+Both thresholds are adjustable from the popover.
 
 ## Install
 
 ```
 git clone git@github.com:dominic-lam/magicbar.git
 cd magicbar
-./install.sh
+xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build
+cp -R "$(xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
+  -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $2; exit}')/magicbar.app" /Applications/
+open /Applications/magicbar.app
 ```
 
-Open SwiftBar and run **Refresh All** to see the menu bar icon immediately. The launchd notifier begins ticking in the background on a 15-minute interval.
+`CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` is not optional. Without it the build carries
+`com.apple.security.get-task-allow`, which marks the app debuggable, and macOS will not grant
+a debuggable app permission to post notifications.
 
-## Uninstall
+Install to `/Applications` rather than running from the build directory. The app registers
+itself as a login item on first launch, and that registration binds to wherever it was
+launched from — a build directory gets cleaned and leaves a dangling entry.
 
-```
-./uninstall.sh
-```
+### One manual step: notifications
 
-Removes the launchd agent and the SwiftBar plugin. Prompts before deleting `~/.magicbar/` (state + logs). Leaves `terminal-notifier` and SwiftBar installed in case you use them for other tools; prints the commands to remove them manually.
+Open **System Settings › Notifications › magicbar** and switch **Allow Notifications** on.
+Set the alert style to **Alerts** rather than **Banners** if you want the warning to stay on
+screen instead of vanishing after a few seconds. Neither can be set programmatically.
+
+## Requirements
+
+macOS 14 or later, and Xcode to build it. No Homebrew packages, no SwiftBar, no
+`terminal-notifier`, no launchd job, no third-party dependencies of any kind.
 
 ## How it works
 
 ```
-                    ioreg -r -k BatteryPercent -a
-                                │
-                                ▼
-                ┌──────────────────────────────────┐
-                │  lib/read_battery.sh             │
-                │    parse_battery_percent <pid>   │  ← testable
-                │    read_battery_percent  <pid>   │  ← consumers call
-                └──────────────────────────────────┘
-                         ▲                    ▲
-                         │                    │
-          ┌──────────────┴──────┐     ┌───────┴────────────┐
-          │ bin/battery_alert.sh│     │ swiftbar/magicbar  │
-          │   launchd, 15m      │     │   SwiftBar, 5m     │
-          │   threshold notify  │     │   menu bar text    │
-          │   state: ~/.magicbar│     │   stateless        │
-          └─────────────────────┘     └────────────────────┘
+IORegistry (AppleDeviceManagementHIDEventService)
+        │  every service with HasBattery + BatteryPercent
+        ▼
+  BatteryReader ──▶ [Device]
+        │
+   BatteryStore     60s timer, thresholds, low-water marks
+     │       │
+     ▼       ▼
+ MenuBarRenderer   Notifier
+  (NSImage)        (UNUserNotificationCenter)
 ```
 
-Two consumers, one shared library. They don't know about each other — uninstalling one leaves the other working. Battery data comes from IOKit via the `ioreg` CLI; parsing is done in Python with `plistlib` so the format is robust against the various quirks of ioreg's XML output.
-
-Why these particular tools:
-- **`ioreg`** is the only supported way to read peripheral BatteryPercent without writing a full IOKit Swift/Obj-C client.
-- **`launchd`** (not `cron`) because macOS has deprecated cron and cron-fired notifications don't reliably reach Notification Center.
-- **`terminal-notifier`** (not `osascript`) because osascript notifications fired from launchd have no owning app bundle and are silently dropped on recent macOS.
-- **SwiftBar** because it turns a stdout protocol into a menu bar icon with zero boilerplate.
+Devices are **discovered**, not configured. Anything that publishes a battery level is picked
+up automatically and named from the registry, so there is no list of product IDs to maintain
+and adding a Magic Trackpad would require no code.
 
 ## Configuration
 
-All user-editable constants live in [`config.sh`](config.sh):
-
-| Knob | Purpose |
-|---|---|
-| `MAGIC_MOUSE_PRODUCT_ID` / `MAGIC_KEYBOARD_PRODUCT_ID` | USB/Bluetooth ProductIDs. 617 for Magic Mouse 2/3 is verified; others are placeholders — confirm with `ioreg -r -k BatteryPercent -a` for your hardware. |
-| `MENU_BAR_DEVICE_PRODUCT_ID` | Which ProductID the menu bar reads from (defaults to Magic Mouse). |
-| `MENU_BAR_DEVICE_ICON` | Emoji shown in the menu bar before the percentage. |
-| `NOTIFICATION_THRESHOLDS` | Descending list of thresholds that trigger notifications. |
-| `STATE_FILE` | Where the notifier remembers the last threshold it alerted on. |
-| `SWIFTBAR_PLUGINS_DIR` | SwiftBar's plugins folder. Defaults to `~/SwiftBar`; override by exporting this before `./install.sh`. |
-| `LAUNCHD_LABEL` | launchd agent label. Change if you want multiple magicbar installs to coexist. |
-
-After editing `config.sh`, re-run `./install.sh` to re-render the plist and SwiftBar plugin.
-
-## Requirements
-
-- macOS (Apple Silicon or Intel)
-- Homebrew — installed from [brew.sh](https://brew.sh)
-- `python3` — ships with the Xcode Command Line Tools (`xcode-select --install`)
-- `terminal-notifier` — installed for you by `install.sh`
-- SwiftBar — installed for you by `install.sh`
+Both thresholds live in the popover and persist in `UserDefaults`. There is no config file.
 
 ## Troubleshooting
 
-**Notifications not firing**
-- Check the launchd log: `tail -f ~/.magicbar/launchd.log`
-- Confirm the agent is loaded: `launchctl list | grep magicbar`
-- Verify notification permission: *System Settings → Notifications → terminal-notifier* should show **Allow Notifications** on, with sound enabled.
-- Force-run the notifier manually: `bash bin/battery_alert.sh`
+**No notifications** — check System Settings as above, then
+`log show --last 10m --predicate 'eventMessage CONTAINS "[magicbar]"'`. The app logs its
+authorization status at every launch, which is the only way to see that state.
 
-**Menu bar icon not appearing**
-- Click the SwiftBar icon → **Refresh All**.
-- Confirm the plugin was copied: `ls -l "$HOME/SwiftBar/magicbar.5m.sh"` (should be `-rwxr-xr-x`).
-- SwiftBar menu → **Plugins…** — look for `magicbar.5m.sh` and check its "Last error" row.
-- Make sure SwiftBar's plugins folder matches `SWIFTBAR_PLUGINS_DIR` in `config.sh` (*SwiftBar → Preferences → General → Plugins Folder*).
+**Menu bar item missing** — `pgrep -f "MacOS/magicbar"`. If it is running, the item exists but
+your menu bar may be full; macOS hides overflow silently.
 
-**Wrong device detected / shows "🖱️ —"**
-- Your peripheral's ProductID probably differs from 617. Run `ioreg -r -k BatteryPercent -a` and look for your device's `"ProductID"` value, then update `config.sh` and re-run `./install.sh`.
+**Wrong or missing device** — `/Applications/magicbar.app/Contents/MacOS/magicbar --dump-devices`
+prints what the app can see, as name, percent, product ID and serial.
+
+**Not starting at login** — the app logs its login item status at launch. Untick and retick
+"Open at login" in the popover, or check System Settings › General › Login Items.
+
+## Diagnostics
+
+The app is developed from a terminal, so anything worth knowing logs itself under `[magicbar]`.
+
+| Argument | Effect |
+|---|---|
+| `--dump-devices` | print every discovered device and exit |
+| `--dump-label` | print the rendered menu bar image's size, template flag and colour sampling |
+| `--simulate "617:9,620:62"` | use injected readings instead of real hardware |
+
+`--simulate` takes product IDs or names. It is how every menu bar state and notification rule
+gets tested without waiting for a real battery to drain.
 
 ## License
 

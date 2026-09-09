@@ -2,42 +2,42 @@
 
 Sequencing only. Features are described in [`FEATURES.md`](./FEATURES.md); open work is in
 [`TODO.md`](./TODO.md); what shipped is in `CHANGELOG.md` and [`PROGRESS.md`](./PROGRESS.md).
-Never add a feature description here — add an entry to `FEATURES.md` and link it.
+Never add a feature description here.
 
-*Created 2026-09-08.*
+*Rewritten 2026-09-08 after the Swift rewrite closed phases 3 through 5 in one session.*
 
 ## Where we are
 
-The repo has been feature-complete for its v1 scope since 2026-04-21 and **has never been installed**.
-A predecessor set of hand-written scripts did the real work until 2026-09-08, when their launch agent
-was unloaded at the user's request. Nothing is currently monitoring any battery.
-
-Four known defects are documented and unfixed, two of which affect anyone who installs today. The
-decision in front of the project is whether to install it at all, and the fixes are the price of yes.
+v1.0.0 is built, installed and running, with every dependency the bash version needed now gone.
+Discovery, both menu bar states and the notification decision logic are verified. The one thing
+not working is notification *delivery*, blocked on a macOS permission the app cannot grant
+itself.
 
 ## Phases
 
 | Phase | What | Status |
 |---|---|---|
-| 1 | Extract the ad-hoc scripts into a repo — shared library, tests, install/uninstall | Shipped 2026-04-21 (`f0e168b`) |
-| 2 | Documentation scaffold — CLAUDE.md and the `docs/claude/` workflow | Shipped 2026-09-08 |
-| 3 | Fix the known defects — blip cascade, installer label, hardcoded names | Now |
-| 4 | Multi-device monitoring — the keyboard, the original point | Next |
-| 5 | First real install, predecessor decommissioned via `MIGRATION.md` | Next |
-| 6 | Quieter thresholds, menu bar for both devices, notification actions | Later |
+| 1 | Extract the ad-hoc scripts into a repo | Shipped 2026-04-21 (`f0e168b`) |
+| 2 | Documentation workflow | Shipped 2026-09-08 (`fd170ad`) |
+| 3 | Replace bash with a native menu bar app | Shipped 2026-09-08 |
+| 4 | Multi-device monitoring | Shipped 2026-09-08 — dissolved by discovery, not built |
+| 5 | Fix the alert cascade | Shipped 2026-09-08 — low-water marks replaced the ladder |
+| 6 | Notifications actually delivering | Now — blocked on a System Settings switch |
+| 7 | Charging awareness, stale-device display, app icon | Next |
+| 8 | Retire the predecessor scripts | Next — after a reboot proves self-start |
 
 ## Now / next / later
 
-- **Now (phase 3):** the three defects in `TODO.md` § Active → Bugs, in that order. The blip cascade
-  first, because it is the one that produces visible noise. Nothing should be installed before this.
-- **Next (phases 4–5):** per-device state, then the keyboard, then the display-name constant so alerts
-  name the right device. Install once that lands, and retire the predecessor in the same session.
-- **Later (phase 6):** everything in `FEATURES.md` § Idea. None of it is committed.
-- **Not planned:** a GUI, non-Apple peripherals, a Homebrew formula. Distribution is `git clone`.
+- **Now (phase 6):** allow notifications in System Settings, then confirm one is delivered.
+  Nothing else is worth doing until the app's loudest behaviour is known to work.
+- **Next (phases 7–8):** suppress alerts while charging, keep a sleeping device visible with a
+  timestamp, draw an app icon. Then decommission the predecessor per `MIGRATION.md`.
+- **Later:** everything in `FEATURES.md` § Idea. None of it is committed.
+- **Not planned:** distribution, notarisation, non-Apple peripherals, a preferences window.
+  The popover is the whole interface.
 
 ## Rules
 
 - A phase is sequencing, not a commitment. Status lives only in `FEATURES.md`.
-- Shipped phases stay as one table row; the detail is in `CHANGELOG.md` and `PROGRESS.md`.
-- Do not install before phase 3 closes. Shipping known-noisy notifications is how the predecessor
-  earned its reputation.
+- Shipped phases stay as one table row.
+- Three phases closed by making them unnecessary rather than by building them. Prefer that.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sandbox off, matching Range. Reading peripheral battery levels out of the IO
+	     registry does work sandboxed (iokit-get-properties is not denied by the App
+	     Sandbox profile), but a future tightening would degrade it silently rather than
+	     with an error, and there is no upside for an app that is never distributed. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+</dict>
+</plist>

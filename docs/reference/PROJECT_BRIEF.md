@@ -1,73 +1,85 @@
 # magicbar — Project Brief
 
-Fast snapshot for picking the project back up. Everything here is verified unless marked otherwise.
-
-*Written 2026-09-08.*
+Fast snapshot for picking the project back up. Everything here was verified on 2026-09-08
+unless marked otherwise.
 
 ## In one line
 
-A pair of bash consumers that read Apple peripheral battery levels from the macOS IOKit registry and
-show them in the menu bar and as threshold notifications.
+A macOS menu bar app that watches every Apple peripheral reporting a battery and escalates from
+a silent glyph to a coloured level bar to a notification per lost percent.
 
 ## Current status
 
-**Built, never installed.** Complete since 2026-04-21, two commits, clean tree, pushed to
-`git@github.com:dominic-lam/magicbar.git`. No launch agent loaded, no `~/.magicbar/`, no SwiftBar
-plugin installed. A predecessor set of hand-written scripts did the real work until 2026-09-08.
+**v1.0.0, built and running.** Installed at `/Applications/magicbar.app`, registered as a login
+item. Swift and SwiftUI, one target, no packages, no background job.
+
+**One thing does not work:** notification authorization is denied and must be granted by hand in
+System Settings › Notifications › magicbar. The first launch was a debuggable Debug build,
+macOS recorded a refusal against the bundle ID, and it will not re-prompt.
 
 ## Runtime flow
 
 ```
-ioreg -r -k BatteryPercent -a
-        → lib/read_battery.sh (parse by ProductID, via python3 plistlib)
-            → bin/battery_alert.sh   launchd every 15m, notifies on threshold crossings
-            → swiftbar/magicbar…     SwiftBar every 5m, menu bar percentage
+IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
+      → BatteryReader → [Device]  (lowest first)
+          → BatteryStore  60s timer · thresholds · low-water marks
+              → MenuBarRenderer  idle glyph, or device + bar + percent
+              → Notifier         one alert per percent lost below the nag line
 ```
-
-Both consumers are rendered from templates at install time with this repo's absolute path baked in.
 
 ## Key files
 
 | File | Why you would open it |
 |---|---|
-| `config.sh` | Every user-editable constant. Sourced, never executed. |
-| `lib/read_battery.sh` | The only place that knows how to read a battery. |
-| `bin/battery_alert.sh` | Threshold logic and state machine. |
-| `install.sh` | Template rendering, dependency install, agent loading. |
-| `tests/test_read_battery.sh` | The entire test suite. |
-| `MIGRATION.md` | Decommissioning the predecessor. Gitignored, this machine only. |
+| `magicbar/BatteryReader.swift` | the only place that reads hardware |
+| `magicbar/BatteryStore.swift` | the notification rule and the poll timer |
+| `magicbar/MenuBarRenderer.swift` | both label states; the part with no prior art |
+| `magicbar/Notifier.swift` | authorization and delivery, with the bundle guard |
+| `docs/claude/ARCHITECTURE.md` | why each of the above is shaped that way |
 
-## Commands
+## Build and run
 
 ```bash
-bash tests/test_read_battery.sh   # whole suite, ~1s
-./install.sh                      # idempotent
-bash bin/battery_alert.sh         # force one notifier run
-tail -f ~/.magicbar/launchd.log   # runtime log
-ioreg -r -k BatteryPercent -a     # ground truth for ProductIDs
+xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build
+```
+
+The flag is required. Without it the build is debuggable and can never get notification
+permission. Install to `/Applications`, never run from the build directory, and never point
+`-derivedDataPath` inside this repo — it is in an iCloud tree and `codesign` will fail.
+
+## Diagnostics
+
+```bash
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-devices
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-label
+open /Applications/magicbar.app --args --simulate "617:9,620:62"
+log show --last 5m --predicate 'eventMessage CONTAINS "[magicbar]"'
 ```
 
 ## Gotchas
 
-- **Moving the repo breaks a live install.** Absolute paths are baked into the rendered plist and
-  plugin. Re-run `./install.sh` after any move, and after any `config.sh` edit.
-- **State stores a threshold, not a percentage.** They coincide below 10% only.
-- **`terminal-notifier` is load-bearing.** osascript from launchd is dropped silently on modern macOS.
-- **launchd's `PATH` excludes Homebrew.** The notifier prepends both brew prefixes itself.
-- **Only one device is ever read**, despite a keyboard constant existing in config.
-- **`~/.claude/scripts/notify-done.sh` also uses `terminal-notifier`.** Unrelated to this project, but
-  it means not every notifier launch in the system log is a battery alert.
-
-## Known defects
-
-Four, all documented in `TODO.md` § Active and `ARCHITECTURE.md` § Known limitations: the blip cascade,
-the `LAUNCHD_LABEL` installer break, hardcoded device names, and the stale unverified-ProductID comment.
+- **The public power-sources API returns zero sources here.** Accessories need a private call.
+  The registry read is not a shortcut, it is the only public route. Do not "improve" it.
+- **Absence is not zero.** A sleeping peripheral vanishes from the registry entirely.
+- **`Product` is user-editable** and its apostrophe differs between devices. Never use it for
+  identity or split it on punctuation.
+- **`isTemplate` is load-bearing in both directions** and symbols arrive already marked true.
+- **A Debug build can never notify.** See above.
+- **A notification refusal is close to permanent** — per bundle ID, no re-prompt, no reset.
+- **Do Not Disturb suppresses alerts** regardless of permission.
 
 ## Verified hardware
 
-| Device | ProductID |
-|---|---|
-| Magic Mouse 2/3 | 617 |
-| Magic Keyboard | 620 |
+| Device | ProductID | Symbol |
+|---|---|---|
+| Magic Mouse | 617 | `magicmouse` |
+| Magic Keyboard | 620 | `keyboard` |
 
-Both read off this machine on 2026-09-08.
+Both discovered automatically; the IDs are only used to pick an icon.
+
+## History
+
+The bash implementation this replaced is at the `bash-final` tag: SwiftBar plugin, launchd
+notifier, `terminal-notifier`, `ioreg`. It monitored one device and flooded the user with
+alerts when a reading wobbled.
