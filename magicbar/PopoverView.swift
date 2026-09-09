@@ -49,7 +49,7 @@ struct PopoverView: View {
 
             Divider()
 
-            ThresholdControls(store: store)
+            LevelControls(store: store)
 
             Divider()
 
@@ -142,44 +142,75 @@ private struct DeviceRow: View {
     }
 }
 
-/// The two thresholds, adjustable without a rebuild.
+/// The two levels, and what the menu bar does with them.
 ///
-/// The bash version kept these in `config.sh` where a text editor could reach them. Requiring
-/// a recompile to change a number would have been a regression.
-private struct ThresholdControls: View {
+/// Replaced two steppers whose interdependency was invisible: each bounded the other, so a
+/// press could be silently refused with no explanation, and neither said what its number
+/// actually changed. A range slider makes the relationship physical and the bands visible.
+private struct LevelControls: View {
     @ObservedObject var store: BatteryStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Stepper(value: $store.alertThreshold, in: (store.nagThreshold + 1)...100, step: 5) {
-                LabelledValue(title: "Show battery level in menu bar when below", value: "\(store.alertThreshold)%")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Levels")
+                .font(PopoverView.rowFont)
+                .fontWeight(.semibold)
+
+            RangeSlider(lower: $store.nagThreshold, upper: $store.alertThreshold,
+                        bounds: 0...50, step: 5)
+
+            HStack(spacing: 12) {
+                LevelKey(color: Urgency.critical.color, name: "urgent", value: store.nagThreshold)
+                LevelKey(color: Urgency.low.color, name: "warn", value: store.alertThreshold)
             }
 
-            // Capped below the alert threshold so the two cannot cross. A nag threshold above
-            // the alert threshold would notify about a device the menu bar was not showing.
-            Stepper(value: $store.nagThreshold, in: 1...max(1, store.alertThreshold - 1), step: 1) {
-                LabelledValue(title: "Notify on every % drop below", value: "\(store.nagThreshold)%")
+            Picker(selection: $store.menuBarVisibility) {
+                ForEach(BatteryStore.MenuBarVisibility.allCases) { option in
+                    Text(option.label).tag(option)
+                }
+            } label: {
+                Text("Show battery level in menu bar")
+                    .font(PopoverView.rowFont)
             }
+            .pickerStyle(.menu)
+            .font(PopoverView.rowFont)
         }
     }
 }
 
-/// Everything about alerts: whether they can be delivered, what they sound like, and the
-/// developer controls for provoking one.
+/// Names a band and its current value, so the slider's colours are not the only key.
+private struct LevelKey: View {
+    let color: Color
+    let name: String
+    let value: Int
+
+    var body: some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
+            Text("\(name) below \(value)%")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+    }
+}
+
+/// Everything about alerts: whether they happen at all, how often, what they sound like, and
+/// the developer controls for provoking one.
 private struct NotificationSection: View {
     @ObservedObject var store: BatteryStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Notifications")
+            Toggle("Notify when battery is low", isOn: $store.notificationsEnabled)
                 .font(PopoverView.rowFont)
                 .fontWeight(.semibold)
+                .toggleStyle(.checkbox)
 
             if !store.notificationsAllowed {
-                // The one failure the app cannot fix for itself. Saying so here, with the way
-                // out attached, beats a user wondering why alerts never arrive.
+                // The one failure the app cannot fix for itself.
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Notifications are turned off")
+                    Text("macOS is blocking notifications")
                         .font(PopoverView.rowFont)
                         .fontWeight(.medium)
                     Text("magicbar can watch the battery but cannot warn you.")
@@ -195,16 +226,49 @@ private struct NotificationSection: View {
                 .cornerRadius(8)
             }
 
-            Picker(selection: $store.alertSound) {
-                ForEach(BatteryStore.availableSounds, id: \.self) { name in
-                    Text(name).tag(name)
-                }
-            } label: {
-                Text("Alert sound")
+            // Indented under the master switch, and disabled with it, so the hierarchy is
+            // visible rather than implied.
+            VStack(alignment: .leading, spacing: 8) {
+                CadenceRow(label: "Every 5% drop below",
+                           enabled: $store.coarseEnabled, level: $store.coarseLevel)
+                CadenceRow(label: "Every 1% drop below",
+                           enabled: $store.fineEnabled, level: $store.fineLevel)
+
+                Toggle("Remind me when the Mac sleeps", isOn: $store.notifyOnSleep)
                     .font(PopoverView.rowFont)
+                    .toggleStyle(.checkbox)
+
+                HStack(spacing: 6) {
+                    Toggle("Remind me each day at", isOn: $store.eveningReminderEnabled)
+                        .font(PopoverView.rowFont)
+                        .toggleStyle(.checkbox)
+                    Stepper(value: $store.eveningReminderHour, in: 0...23) {
+                        Text(String(format: "%02d:00", store.eveningReminderHour))
+                            .font(PopoverView.rowFont)
+                            .monospacedDigit()
+                    }
+                    .disabled(!store.eveningReminderEnabled)
+                }
+
+                Picker(selection: $store.alertSound) {
+                    ForEach(BatteryStore.availableSounds, id: \.self) { name in
+                        Text(name).tag(name)
+                    }
+                } label: {
+                    Text("Alert sound")
+                        .font(PopoverView.rowFont)
+                }
+                .pickerStyle(.menu)
+                .font(PopoverView.rowFont)
+                .onChange(of: store.alertSound) { _, name in
+                    // Audible on selection: choosing between Basso, Blow and Frog from a list
+                    // of words is guessing, and the first time you hear it should not be at 9%.
+                    if name != "None" { NSSound(named: name)?.play() }
+                }
             }
-            .pickerStyle(.menu)
-            .font(PopoverView.rowFont)
+            .padding(.leading, 18)
+            .disabled(!store.notificationsEnabled)
+            .opacity(store.notificationsEnabled ? 1 : 0.45)
 
             Toggle("Developer mode", isOn: $store.developerMode)
                 .font(PopoverView.rowFont)
@@ -213,6 +277,31 @@ private struct NotificationSection: View {
             if store.developerMode {
                 DeveloperControls(store: store)
             }
+        }
+    }
+}
+
+/// One notification rule: whether it applies, and which level it watches.
+private struct CadenceRow: View {
+    let label: String
+    @Binding var enabled: Bool
+    @Binding var level: BatteryStore.Level
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Toggle(label, isOn: $enabled)
+                .font(PopoverView.rowFont)
+                .toggleStyle(.checkbox)
+            Picker("", selection: $level) {
+                ForEach(BatteryStore.Level.allCases) { l in
+                    Text(l.label).tag(l)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .font(PopoverView.rowFont)
+            .disabled(!enabled)
+            .frame(width: 108)
         }
     }
 }

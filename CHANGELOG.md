@@ -28,7 +28,30 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
 - A `--test-notification` argument that runs the same path from a terminal.
 - Notifications carry a gauge image tinted by the level.
 
+### Changed — settings and alerts reworked
+- The two levels are set on one two-handle slider with coloured bands instead of two steppers.
+  The handles cannot cross, so the interdependency that used to block a press silently is now
+  physical, and the bands show what each level means without a sentence.
+- The menu bar reading can be shown below either level, or always.
+- Notifications have a master switch and two independent rules — every 5% and every 1%, each
+  pointed at either level. Where both apply the finer one wins outright, so no configuration
+  produces two alerts for one drop. Turning off the 1% rule is the "stop nagging me" setting.
+- **Two reminders tied to a moment rather than a level**: one as the Mac goes to sleep, one at
+  a chosen hour each day. Both fire only if something is below the warn level, and neither
+  consumes the ordinary cadence. This is the half the app was missing — a percentage arriving
+  mid-task is a more detailed ambush, where the same reading at bedtime is actionable.
+- The alert sound plays when you pick it, and "None" is now an option, so notifications can be
+  silenced without going near System Settings.
+
 ### Fixed
+- **The menu bar alert is legible on a light menu bar.** It was only ever checked against a
+  dark one; the warn orange measured 2.20:1 against white where text needs 4.5:1. The alert is
+  now dark content on an opaque coloured capsule, which carries its own background.
+- **The two alert levels are distinguishable without seeing colour.** Orange and red simulate
+  to nearly the same olive-yellow for red-green colourblind users, and hue was the only channel.
+  The urgent level now also carries a warning triangle.
+- The menu bar alert image has an accessibility description, so VoiceOver announces the device,
+  level and state rather than nothing.
 - **Repeated alerts for a battery that had not moved.** A one-point rise in a Bluetooth reading
   was treated as a recharge and re-armed every warning level, producing an alert per tick all
   the way back down. Alerts now track the lowest level seen, so noise cannot re-arm anything.

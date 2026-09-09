@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppKit
 
 /// Polls the peripherals, decides what the menu bar shows, and decides when to notify.
 ///
@@ -34,6 +35,66 @@ final class BatteryStore: ObservableObject {
         }
     }
 
+    /// Which level a notification rule watches. Naming the levels rather than repeating a
+    /// number keeps the two settings honest: change a level once and everything follows.
+    enum Level: String, CaseIterable, Identifiable {
+        case warn, urgent
+        var id: String { rawValue }
+        var label: String { self == .warn ? "warn" : "urgent" }
+    }
+
+    /// Where the menu bar starts showing a reading rather than the plain glyph.
+    enum MenuBarVisibility: String, CaseIterable, Identifiable {
+        case belowWarn, belowUrgent, always
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            // Short enough to fit the picker without truncating. The key beneath the slider
+            // already says what each level's number is.
+            case .belowWarn: return "below warn"
+            case .belowUrgent: return "below urgent"
+            case .always: return "always"
+            }
+        }
+    }
+
+    @Published var menuBarVisibility: MenuBarVisibility {
+        didSet { UserDefaults.standard.set(menuBarVisibility.rawValue, forKey: "menuBarVisibility") }
+    }
+
+    /// The master switch. Off means the app watches and shows but never interrupts.
+    @Published var notificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+    }
+
+    @Published var coarseEnabled: Bool {
+        didSet { UserDefaults.standard.set(coarseEnabled, forKey: "coarseEnabled") }
+    }
+    @Published var coarseLevel: Level {
+        didSet { UserDefaults.standard.set(coarseLevel.rawValue, forKey: "coarseLevel") }
+    }
+    @Published var fineEnabled: Bool {
+        didSet { UserDefaults.standard.set(fineEnabled, forKey: "fineEnabled") }
+    }
+    @Published var fineLevel: Level {
+        didSet { UserDefaults.standard.set(fineLevel.rawValue, forKey: "fineLevel") }
+    }
+
+    /// Warn when the machine goes to sleep, so the message is waiting when the user next sits
+    /// down — which is when a cable costs them nothing.
+    @Published var notifyOnSleep: Bool {
+        didSet { UserDefaults.standard.set(notifyOnSleep, forKey: "notifyOnSleep") }
+    }
+
+    /// A daily check at a chosen hour. The scheduled version of the same idea, for the evenings
+    /// the machine never sleeps.
+    @Published var eveningReminderEnabled: Bool {
+        didSet { UserDefaults.standard.set(eveningReminderEnabled, forKey: "eveningReminderEnabled") }
+    }
+    @Published var eveningReminderHour: Int {
+        didSet { UserDefaults.standard.set(eveningReminderHour, forKey: "eveningReminderHour") }
+    }
+
     /// Which macOS alert sound a notification plays. "Default" means the system default.
     @Published var alertSound: String {
         didSet { UserDefaults.standard.set(alertSound, forKey: "alertSound") }
@@ -57,7 +118,7 @@ final class BatteryStore: ObservableObject {
             .filter { $0.hasSuffix(".aiff") }
             .map { String($0.dropLast(5)) }
             .sorted() ?? []
-        return ["Default"] + names
+        return ["None", "Default"] + names
     }()
 
     /// Readings kept for devices that have dropped out of the registry.
@@ -76,6 +137,10 @@ final class BatteryStore: ObservableObject {
     /// How long a vanished low device keeps its last reading. Long enough to cover a mouse
     /// sleeping between uses, short enough that it stops being claimed as news.
     private let staleAfter: TimeInterval = 30 * 60
+
+    /// The day the evening reminder last fired, so it fires once per day rather than on every
+    /// tick after the hour passes.
+    private var lastEveningReminder: Date?
 
     private var firedLaunchTest = false
     private var timer: Timer?
@@ -112,11 +177,31 @@ final class BatteryStore: ObservableObject {
         // `integer(forKey:)` returns 0 for an absent key, which would mean "never alert".
         // Register defaults so a first run behaves like the documented 20 and 10.
         defaults.register(defaults: ["alertThreshold": 20, "nagThreshold": 10])
-        defaults.register(defaults: ["alertSound": "Hero"])
+        defaults.register(defaults: [
+            "alertSound": "Hero",
+            "menuBarVisibility": MenuBarVisibility.belowWarn.rawValue,
+            "notificationsEnabled": true,
+            "coarseEnabled": true,
+            "coarseLevel": Level.warn.rawValue,
+            "fineEnabled": true,
+            "fineLevel": Level.urgent.rawValue,
+            "notifyOnSleep": true,
+            "eveningReminderEnabled": true,
+            "eveningReminderHour": 18,
+        ])
         alertThreshold = defaults.integer(forKey: "alertThreshold")
         nagThreshold = defaults.integer(forKey: "nagThreshold")
-        alertSound = defaults.string(forKey: "alertSound") ?? "Default"
+        alertSound = defaults.string(forKey: "alertSound") ?? "Hero"
         developerMode = defaults.bool(forKey: "developerMode")
+        menuBarVisibility = MenuBarVisibility(rawValue: defaults.string(forKey: "menuBarVisibility") ?? "") ?? .belowWarn
+        notificationsEnabled = defaults.bool(forKey: "notificationsEnabled")
+        coarseEnabled = defaults.bool(forKey: "coarseEnabled")
+        coarseLevel = Level(rawValue: defaults.string(forKey: "coarseLevel") ?? "") ?? .warn
+        fineEnabled = defaults.bool(forKey: "fineEnabled")
+        fineLevel = Level(rawValue: defaults.string(forKey: "fineLevel") ?? "") ?? .urgent
+        notifyOnSleep = defaults.bool(forKey: "notifyOnSleep")
+        eveningReminderEnabled = defaults.bool(forKey: "eveningReminderEnabled")
+        eveningReminderHour = defaults.integer(forKey: "eveningReminderHour")
         lowWaterMarks = defaults.dictionary(forKey: marksDefaultsKey) as? [String: Int] ?? [:]
 
         SimulatedReadings.parseLaunchArguments()
@@ -143,6 +228,15 @@ final class BatteryStore: ObservableObject {
             defaults.set(true, forKey: "didOfferLoginItem")
             LoginItem.setEnabled(true)
             launchAtLogin = LoginItem.isEnabled
+        }
+
+        // Warn as the machine goes to sleep. The message will not be read until the user next
+        // sits down — which is the point: that is when a cable is free, rather than mid-task
+        // when flipping a mouse over costs them the mouse.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.warnBeforeSleep() }
         }
 
         // The system tells us when a peripheral changes, which is what makes plugging a cable
@@ -183,7 +277,13 @@ final class BatteryStore: ObservableObject {
         // a keyboard on a cable at 90% hid a mouse at 4% — while a notification was
         // simultaneously calling that mouse critical. The app contradicted itself on screen.
         // Charging still takes over, but only when nothing is actually running out.
-        if let dying = devices.first(where: { !$0.isCharging && $0.percent < alertThreshold }) {
+        let visibleBelow: Int
+        switch menuBarVisibility {
+        case .always: visibleBelow = 101
+        case .belowWarn: visibleBelow = alertThreshold
+        case .belowUrgent: visibleBelow = nagThreshold
+        }
+        if let dying = devices.first(where: { !$0.isCharging && $0.percent < visibleBelow }) {
             return dying
         }
         if let charging = devices.first(where: { $0.isCharging }) { return charging }
@@ -242,15 +342,23 @@ final class BatteryStore: ObservableObject {
             testDeviceID = devices.first?.id ?? ""
         }
         for device in devices where !device.isStale { evaluateNotification(for: device) }
+        checkEveningReminder()
     }
 
-    /// How far a level must fall before it is worth saying again.
+    func threshold(for level: Level) -> Int {
+        level == .warn ? alertThreshold : nagThreshold
+    }
+
+    /// How far a level must fall before it is worth saying again, or nil for silence.
     ///
-    /// Between the two thresholds a drop is news but not an emergency, so it reports every
-    /// five points. Below the lower threshold every single point is announced, which is the
-    /// deliberate nagging the app exists for.
-    private func notifyStep(for percent: Int) -> Int {
-        percent < nagThreshold ? 1 : 5
+    /// **The finer rule takes all.** Where both rules apply the smaller step wins outright,
+    /// rather than both firing — so pointing them at the same level is redundant rather than
+    /// contradictory, and there is no configuration that produces two alerts for one drop.
+    func notifyStep(for percent: Int) -> Int? {
+        guard notificationsEnabled else { return nil }
+        if fineEnabled, percent < threshold(for: fineLevel) { return 1 }
+        if coarseEnabled, percent < threshold(for: coarseLevel) { return 5 }
+        return nil
     }
 
     /// What to do about a reading, given the level last announced for that device.
@@ -267,9 +375,9 @@ final class BatteryStore: ObservableObject {
 
     func decide(percent: Int, lastAnnounced: Int?) -> AlertDecision {
         if let lastAnnounced, percent >= lastAnnounced + rechargeDelta { return .rearm }
-        guard percent < alertThreshold else { return .stayQuiet }
+        guard let step = notifyStep(for: percent) else { return .stayQuiet }
         guard let lastAnnounced else { return .notify }
-        return percent <= lastAnnounced - notifyStep(for: percent) ? .notify : .stayQuiet
+        return percent <= lastAnnounced - step ? .notify : .stayQuiet
     }
 
     /// Fires at most one alert per device per call, and only on a genuine new low.
@@ -301,6 +409,43 @@ final class BatteryStore: ObservableObject {
                 persistMarks()
             }
         }
+    }
+
+    /// Fired as the machine sleeps, if anything is below the warn level.
+    ///
+    /// Deliberately outside the low-water-mark rule: this is not a new low, it is the same
+    /// reading delivered at a better moment, so it neither consumes nor is suppressed by the
+    /// ordinary cadence.
+    private func warnBeforeSleep() {
+        guard notificationsEnabled, notifyOnSleep else { return }
+        guard let device = devices.first(where: { !$0.isCharging && !$0.isStale
+                                                  && $0.percent < alertThreshold }) else { return }
+        NSLog("%@", "[magicbar] sleep warning for \(device.shortName) at \(device.percent)%")
+        notifier.notifyChargeReminder(device: device, urgency: urgency(for: device.percent),
+                                      sound: alertSound,
+                                      reason: "Charge it while you are away")
+    }
+
+    /// The scheduled twin of the sleep warning, for evenings the machine never sleeps.
+    ///
+    /// Checked on the ordinary poll rather than by its own timer: a timer that has to survive
+    /// sleep, clock changes and time zones is a whole mechanism, where a comparison against the
+    /// wall clock is correct by construction.
+    private func checkEveningReminder() {
+        guard notificationsEnabled, eveningReminderEnabled else { return }
+
+        let calendar = Calendar.current
+        let now = Date.now
+        guard calendar.component(.hour, from: now) >= eveningReminderHour else { return }
+        if let last = lastEveningReminder, calendar.isDate(last, inSameDayAs: now) { return }
+
+        guard let device = devices.first(where: { !$0.isCharging && !$0.isStale
+                                                  && $0.percent < alertThreshold }) else { return }
+        lastEveningReminder = now
+        NSLog("%@", "[magicbar] evening reminder for \(device.shortName) at \(device.percent)%")
+        notifier.notifyChargeReminder(device: device, urgency: urgency(for: device.percent),
+                                      sound: alertSound,
+                                      reason: "Charge it tonight")
     }
 
     private func persistMarks() {

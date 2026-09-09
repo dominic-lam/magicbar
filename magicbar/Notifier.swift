@@ -98,9 +98,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         // near-identical rows. A full drain can post ten of these; without grouping the user
         // has ten separate things to dismiss.
         content.threadIdentifier = device.id
-        content.sound = sound == "Default"
-            ? .default
-            : UNNotificationSound(named: UNNotificationSoundName("\(sound).aiff"))
+        content.sound = soundFor(sound)
 
         // Notification content carries no colour of its own — there is no tint API. An
         // attached image is the only way to make the alert itself look urgent, so the same
@@ -121,6 +119,44 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             } else {
                 NSLog("%@", "[magicbar] notified \(device.shortName) at \(device.percent)% test=\(isTest)")
             }
+        }
+        return true
+    }
+
+    /// "None" is the only way to keep the warnings and lose the noise without going to System
+    /// Settings — where a wrong click on notification permission is close to unrecoverable.
+    private func soundFor(_ name: String) -> UNNotificationSound? {
+        switch name {
+        case "None": return nil
+        case "Default": return .default
+        default: return UNNotificationSound(named: UNNotificationSoundName("\(name).aiff"))
+        }
+    }
+
+    /// A reminder tied to a moment rather than to a new low.
+    ///
+    /// Separate from `notifyLowBattery` because it says something different: the level has not
+    /// changed, the opportunity has. Its identifier is unique per hour so a reminder never
+    /// replaces or is replaced by the ordinary alerts, while still grouping under the device.
+    @discardableResult
+    func notifyChargeReminder(device: Device, urgency: Urgency, sound: String, reason: String) -> Bool {
+        guard isBundled, isAuthorized else { return false }
+
+        let content = UNMutableNotificationContent()
+        content.title = "\(device.shortName) is at \(device.percent)%"
+        content.body = reason
+        content.threadIdentifier = device.id
+        content.sound = soundFor(sound)
+        if let attachment = gaugeAttachment(device: device, urgency: urgency) {
+            content.attachments = [attachment]
+        }
+
+        let request = UNNotificationRequest(
+            identifier: "magicbar.reminder.\(device.id).\(Int(Date.now.timeIntervalSince1970 / 3600))",
+            content: content, trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error { NSLog("%@", "[magicbar] reminder failed: \(error.localizedDescription)") }
         }
         return true
     }
