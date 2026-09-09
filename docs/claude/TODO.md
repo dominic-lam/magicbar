@@ -84,6 +84,12 @@ Nothing known.
 
 ### Docs & hygiene
 
+- [ ] **Nothing in the repo shows what the app looks like.** The README describes three menu
+      bar states in prose and a reader deciding whether to build from source cannot see any of
+      them. `docs/review-shots/` holds nine, but they were taken for the 2026-09-08 review and
+      the popover has been rebuilt since, so they show settings that no longer exist.
+      *Next action:* retake the idle glyph, a low-battery label and the popover, and embed them
+      under "What it does".
 - [ ] **`MIGRATION.md` is gitignored**, so the decommissioning guide exists on one machine only.
       *Next action:* decide whether that is still right now that it covers the predecessor only.
 
