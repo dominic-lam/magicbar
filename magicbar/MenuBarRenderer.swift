@@ -64,12 +64,12 @@ enum MenuBarRenderer {
             .foregroundColor: nsColor,
         ])
 
-        // A bolt when the device is on a cable, which is the whole charging cue. Drawn
-        // beside the gauge rather than inside it: at 8pt tall the bar has no room for a
-        // glyph that would still read as lightning.
+        // A bolt when the device is on a cable, drawn *over* the middle of the gauge the way
+        // the system's own battery indicator does. It is stroked in the background colour
+        // first so it stays legible against both the filled and unfilled parts of the bar.
         let bolt: NSImage? = device.isCharging
             ? Self.symbol(named: ["bolt.fill", "bolt"],
-                          configuration: NSImage.SymbolConfiguration(pointSize: fontSize - 2, weight: .bold)
+                          configuration: NSImage.SymbolConfiguration(pointSize: fontSize, weight: .black)
                              .applying(.init(paletteColors: [nsColor])),
                           description: "charging")
             : nil
@@ -81,8 +81,10 @@ enum MenuBarRenderer {
         let barThickness: CGFloat = 9
         let gap: CGFloat = 4
         let height = contentHeight
-        let boltRun = bolt == nil ? 0 : boltSize.width + gap
-        let totalWidth = symbolSize.width + gap + boltRun + barWidth + gap + textSize.width
+        // The bolt overlays the bar, so it costs no width of its own. The bar widens a little
+        // when charging so the glyph has room to sit inside it.
+        let gaugeWidth = bolt == nil ? barWidth : barWidth + 6
+        let totalWidth = symbolSize.width + gap + gaugeWidth + gap + textSize.width
 
         // Captured as plain values: the drawing handler outlives this call.
         let percent = device.percent
@@ -98,17 +100,11 @@ enum MenuBarRenderer {
                 x += symbolSize.width + gap
             }
 
-            if let bolt {
-                bolt.draw(in: NSRect(x: x, y: (height - boltSize.height) / 2,
-                                     width: boltSize.width, height: boltSize.height))
-                x += boltSize.width + gap
-            }
-
             // Track, then fill. Rounded to match the popover bars, so the two readings of
             // the same number look like the same control.
             let track = NSRect(x: x,
                                y: (height - barThickness) / 2,
-                               width: barWidth,
+                               width: gaugeWidth,
                                height: barThickness)
             nsColor.withAlphaComponent(0.25).setFill()
             NSBezierPath(roundedRect: track, xRadius: 2, yRadius: 2).fill()
@@ -134,7 +130,18 @@ enum MenuBarRenderer {
                                                  width: fillWidth, height: track.height),
                              xRadius: radius, yRadius: radius).fill()
             }
-            x += barWidth + gap
+            if let bolt {
+                // Punched out of the bar rather than laid on top: a solid glyph in the fill
+                // colour would vanish against the filled part of the gauge.
+                let b = boltSize
+                let boltRect = NSRect(x: track.midX - b.width / 2, y: track.midY - b.height / 2,
+                                      width: b.width, height: b.height)
+                NSGraphicsContext.current?.compositingOperation = .destinationOut
+                bolt.draw(in: boltRect)
+                NSGraphicsContext.current?.compositingOperation = .sourceOver
+            }
+
+            x += gaugeWidth + gap
 
             text.draw(at: NSPoint(x: x, y: (height - textSize.height) / 2))
             return true
@@ -149,52 +156,65 @@ enum MenuBarRenderer {
     /// Notification content has no tint API, so an attached image is the only way to make an
     /// alert itself carry the urgency of the reading.
     ///
-    /// **The urgency colour is the background, not the fill.** Filling only the level was
-    /// tried first and failed the whole purpose: at 5% the coloured part is a sliver a few
-    /// pixels tall, so the thumbnail read as plain white at exactly the reading that most
-    /// needed to look alarming. Flooding the tile means the colour is unmissable and the
-    /// silhouette still carries the level.
-    static func gaugeImage(device: Device, color: Color, size: CGFloat) -> NSImage {
-        let tint = NSColor(color)
-        let percent = device.percent
+    /// **The urgency colour is the ground, not the fill.** Filling only the level was tried
+    /// first and defeated the purpose: at 5% the coloured part is a few pixels tall, so the
+    /// thumbnail read as plain white at exactly the reading that most needed to look alarming.
+    ///
+    /// **The device's own symbol, not a fixed silhouette.** An earlier version drew a mouse
+    /// capsule whatever the device was, so a keyboard alert showed a mouse.
+    static func gaugeImage(device: Device, urgency: Urgency, size: CGFloat) -> NSImage {
+        let tint = NSColor(urgency.color)
+        let percent = min(max(device.percent, 0), 100)
         let charging = device.isCharging
         let u = size / 256
+        let shell = NSColor(red: 0.99, green: 0.98, blue: 0.97, alpha: 1)
+
+        let glyph = symbol(named: device.symbolCandidates,
+                           configuration: NSImage.SymbolConfiguration(pointSize: 104 * u, weight: .regular)
+                              .applying(.init(paletteColors: [shell])),
+                           description: device.shortName)
+        let bolt: NSImage? = charging
+            ? symbol(named: ["bolt.fill", "bolt"],
+                     configuration: NSImage.SymbolConfiguration(pointSize: 48 * u, weight: .bold)
+                        .applying(.init(paletteColors: [tint.blended(withFraction: 0.35, of: .black) ?? tint])),
+                     description: "charging")
+            : nil
 
         return NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
-            let deep = tint.blended(withFraction: 0.30, of: .black) ?? tint
-            deep.setFill()
+            (tint.blended(withFraction: 0.28, of: .black) ?? tint).setFill()
             NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: size, height: size),
                          xRadius: 56 * u, yRadius: 56 * u).fill()
 
-            let bodyW = 96 * u, bodyH = 168 * u, stroke = 12 * u
-            let body = NSRect(x: (size - bodyW) / 2, y: (size - bodyH) / 2, width: bodyW, height: bodyH)
-            let inset = stroke / 2 + 5 * u
-            let inner = body.insetBy(dx: inset, dy: inset)
-            let shell = NSColor(red: 0.98, green: 0.97, blue: 0.95, alpha: 1)
+            // Symbol and bar are centred as a group, not individually. Centring the symbol on
+            // its own and hanging the bar underneath left the pair sitting low, which is what
+            // made the old tile look off-centre.
+            let barW = 128 * u, barH = 20 * u, gap = 22 * u
+            let glyphSize = glyph?.size ?? NSSize(width: 96 * u, height: 96 * u)
+            let groupHeight = glyphSize.height + gap + barH
+            let groupBottom = (size - groupHeight) / 2
 
-            // Level in the shell colour against the tinted ground, so the reading stays
-            // legible whatever the urgency colour is.
-            NSGraphicsContext.saveGraphicsState()
-            NSBezierPath(roundedRect: inner, xRadius: inner.width / 2 - 2 * u, yRadius: 34 * u).addClip()
-            let level = CGFloat(min(max(percent, 0), 100)) / 100
-            let fillHeight = max(inner.height * level, percent > 0 ? 4 * u : 0)
-            if fillHeight > 0 {
+            let barRect = NSRect(x: (size - barW) / 2, y: groupBottom, width: barW, height: barH)
+            let glyphRect = NSRect(x: (size - glyphSize.width) / 2,
+                                   y: groupBottom + barH + gap,
+                                   width: glyphSize.width,
+                                   height: glyphSize.height)
+
+            glyph?.draw(in: glyphRect)
+
+            shell.withAlphaComponent(0.30).setFill()
+            NSBezierPath(roundedRect: barRect, xRadius: barH / 2, yRadius: barH / 2).fill()
+
+            let fillW = max(barRect.width * CGFloat(percent) / 100, percent > 0 ? barH : 0)
+            if fillW > 0 {
                 shell.setFill()
-                NSBezierPath(rect: NSRect(x: inner.minX, y: inner.minY,
-                                          width: inner.width, height: fillHeight)).fill()
+                NSBezierPath(roundedRect: NSRect(x: barRect.minX, y: barRect.minY,
+                                                 width: fillW, height: barH),
+                             xRadius: barH / 2, yRadius: barH / 2).fill()
             }
-            NSGraphicsContext.restoreGraphicsState()
 
-            let outline = NSBezierPath(roundedRect: body, xRadius: bodyW / 2, yRadius: 46 * u)
-            outline.lineWidth = stroke
-            shell.setStroke()
-            outline.stroke()
-
-            if charging, let bolt = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)?
-                .withSymbolConfiguration(.init(pointSize: 44 * u, weight: .bold)
-                    .applying(.init(paletteColors: [shell]))) {
+            if let bolt {
                 let b = bolt.size
-                bolt.draw(in: NSRect(x: (size - b.width) / 2, y: size * 0.14,
+                bolt.draw(in: NSRect(x: (size - b.width) / 2, y: barRect.midY - b.height / 2,
                                      width: b.width, height: b.height))
             }
             return true

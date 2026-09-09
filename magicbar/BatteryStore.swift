@@ -62,6 +62,8 @@ final class BatteryStore: ObservableObject {
 
     private var firedLaunchTest = false
     private var timer: Timer?
+    private let watcher = RegistryWatcher()
+    private var coalesceTask: Task<Void, Never>?
     private let notifier = Notifier()
 
     /// The lowest level seen per device since its last real recharge, keyed by device id.
@@ -79,9 +81,12 @@ final class BatteryStore: ObservableObject {
     /// must not reset the marks, or the cascade comes straight back.
     private let rechargeDelta = 5
 
-    /// Battery levels move over tens of minutes, so this is about responsiveness after a
-    /// wake rather than resolution. A tighter interval would only burn cycles.
-    private let pollInterval: TimeInterval = 60
+    /// Levels themselves move over tens of minutes, but *connection* changes are instant and
+    /// a user who has just plugged something in is looking at the menu bar right then. The
+    /// registry read costs about ten milliseconds, so the old 60s interval bought nothing and
+    /// made charging look ignored. The interest notification below usually beats this anyway;
+    /// the timer is the safety net for whatever it misses.
+    private let pollInterval: TimeInterval = 5
 
     private let marksDefaultsKey = "lowWaterMarks"
 
@@ -90,7 +95,7 @@ final class BatteryStore: ObservableObject {
         // `integer(forKey:)` returns 0 for an absent key, which would mean "never alert".
         // Register defaults so a first run behaves like the documented 20 and 10.
         defaults.register(defaults: ["alertThreshold": 20, "nagThreshold": 10])
-        defaults.register(defaults: ["alertSound": "Default"])
+        defaults.register(defaults: ["alertSound": "Hero"])
         alertThreshold = defaults.integer(forKey: "alertThreshold")
         nagThreshold = defaults.integer(forKey: "nagThreshold")
         alertSound = defaults.string(forKey: "alertSound") ?? "Default"
@@ -123,6 +128,11 @@ final class BatteryStore: ObservableObject {
             launchAtLogin = LoginItem.isEnabled
         }
 
+        // The system tells us when a peripheral changes, which is what makes plugging a cable
+        // in show up at once rather than at the next tick. Bursts are coalesced: one physical
+        // event raises several registry notifications.
+        watcher.start { [weak self] in self?.scheduleCoalescedRefresh() }
+
         // Read once before scheduling, or the menu bar shows nothing for a full interval.
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
@@ -130,7 +140,20 @@ final class BatteryStore: ObservableObject {
         }
     }
 
-    deinit { timer?.invalidate() }
+    deinit {
+        timer?.invalidate()
+        coalesceTask?.cancel()
+    }
+
+    /// Collapses a burst of registry notifications into a single read.
+    private func scheduleCoalescedRefresh() {
+        coalesceTask?.cancel()
+        coalesceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            self?.refresh()
+        }
+    }
 
     /// The device driving the menu bar, or nil when there is nothing worth showing.
     ///

@@ -177,6 +177,27 @@ identifier, so every entry point is guarded.
 
 ---
 
+## Reacting to a plugged-in cable
+
+**IOKit broadcasts, and the app listens.** Two public notifications carry what this app needs:
+
+- `IOServiceAddMatchingNotification` with `kIOMatchedNotification` — a matching service
+  appeared, meaning a peripheral woke or reconnected.
+- `IOServiceAddInterestNotification` with `kIOGeneralInterest` — an existing service changed.
+  The device entries advertise this themselves; an `IOGeneralInterest` key sits in their
+  registry properties.
+
+Plugging a cable in changes the device's properties, so the interest notification is what puts
+charging in the menu bar at once rather than at the next poll. Bursts are coalesced, because
+one physical event raises several notifications.
+
+`IOPSNotificationCreateRunLoopSource`, the public power-source notification, is **not** usable
+here for the same reason the power-source API is not: it reports the sources
+`IOPSCopyPowerSourcesList` returns, and that list is empty on this machine.
+
+The 5-second timer stays as a safety net. An undrained matching iterator never fires again, and
+a property change that does not raise general interest would otherwise be invisible.
+
 ## Launch at login
 
 `SMAppService.mainApp`, registered once on first launch and revocable from the popover or from
@@ -207,9 +228,10 @@ actually displayed.
 
 ## Known gaps
 
-- **Charging state is ignored.** `BatteryStatusFlags` reads 0 for both devices and its meaning
-  was not determined, so a device on a cable will still be nagged about. Needs a device plugged
-  in to decode.
-- **No sleep or wake handling.** After a long sleep the first reading is up to a minute late.
+- **The charging flag is a guess.** `BatteryStatusFlags` reads 0 on every device observed so
+  far, all of them discharging. Any non-zero value is treated as charging and logged. Not yet
+  confirmed against a device actually on a cable.
+- **No sleep or wake handling.** The registry watcher covers reconnection, which is the usual
+  post-wake event, but nothing observes wake directly.
 - **A vanished device disappears from the popover** rather than showing a last-known value with
   a timestamp.

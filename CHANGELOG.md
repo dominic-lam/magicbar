@@ -26,9 +26,7 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
   an alert for any device at any level, so a warning can be seen at 3% without draining a
   device to 3%.
 - A `--test-notification` argument that runs the same path from a terminal.
-- Notifications carry the level's colour twice over: a tinted gauge image, and a coloured dot
-  in both the title and the body. Notification text has no colour API, so the dot is the only
-  way the words themselves can show urgency.
+- Notifications carry a gauge image tinted by the level.
 
 ### Fixed
 - **Repeated alerts for a battery that had not moved.** A one-point rise in a Bluetooth reading
@@ -42,6 +40,15 @@ Rewritten as a native macOS menu bar app. The bash implementation is preserved a
   third-party dependencies and no background job.
 
 ### Changed
+- Alerts default to the Hero sound.
+- The notification image uses the device's own symbol, so a keyboard alert no longer shows a
+  mouse, and centres the glyph and level bar as a group.
+- The charging bolt sits in the middle of the menu bar gauge, knocked out of it so it reads
+  against both the filled and empty parts.
+- Charging appears immediately. The app now listens for IOKit's own notifications rather than
+  waiting for a poll, and the poll itself dropped from 60 seconds to 5.
+- Threshold labels say what they mean: "Show battery level in menu bar when below" and
+  "Notify on every % drop below".
 - One text size throughout the popover, with the footer the only deliberate exception.
   Hierarchy now comes from weight and colour rather than from size.
 

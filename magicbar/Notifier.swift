@@ -92,10 +92,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         }
 
         let content = UNMutableNotificationContent()
-        // The dot is the only colour the text itself can carry, and it repeats in the body so
-        // the level still reads where a title is truncated.
-        content.title = "\(urgency.dot) \(device.shortName) \(isTest ? "test alert" : urgency.word)"
-        content.body = "\(urgency.dot) \(device.percent)% remaining"
+        content.title = "\(device.shortName) \(isTest ? "test alert" : urgency.word)"
+        content.body = "\(device.percent)% remaining"
         content.sound = sound == "Default"
             ? .default
             : UNNotificationSound(named: UNNotificationSoundName("\(sound).aiff"))
@@ -103,7 +101,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         // Notification content carries no colour of its own — there is no tint API. An
         // attached image is the only way to make the alert itself look urgent, so the same
         // gauge the menu bar draws is rendered in the same colour and attached here.
-        if let attachment = gaugeAttachment(device: device, color: urgency.color) {
+        if let attachment = gaugeAttachment(device: device, urgency: urgency) {
             content.attachments = [attachment]
         }
 
@@ -127,8 +125,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     ///
     /// The file has to outlive this call: the notification centre copies it asynchronously,
     /// so it is written to the temp directory under a unique name rather than reused.
-    private func gaugeAttachment(device: Device, color: Color) -> UNNotificationAttachment? {
-        let image = MenuBarRenderer.gaugeImage(device: device, color: color, size: 256)
+    private func gaugeAttachment(device: Device, urgency: Urgency) -> UNNotificationAttachment? {
+        let image = MenuBarRenderer.gaugeImage(device: device, urgency: urgency, size: 256)
         guard let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff),
               let png = rep.representation(using: .png, properties: [:]) else { return nil }

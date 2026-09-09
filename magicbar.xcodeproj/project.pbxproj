@@ -15,6 +15,7 @@
 		B00000000000000000000006 /* MenuBarRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* MenuBarRenderer.swift */; };
 		B00000000000000000000007 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* PopoverView.swift */; };
 		B00000000000000000000009 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* LoginItem.swift */; };
+		B0000000000000000000000A /* RegistryWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* RegistryWatcher.swift */; };
 		B00000000000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -29,6 +30,7 @@
 		F00000000000000000000008 /* magicbar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = magicbar.entitlements; sourceTree = "<group>"; };
 		F00000000000000000000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F0000000000000000000000B /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
+		F0000000000000000000000C /* RegistryWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistryWatcher.swift; sourceTree = "<group>"; };
 		F0000000000000000000000A /* magicbar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = magicbar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -70,6 +72,7 @@
 				F00000000000000000000006 /* MenuBarRenderer.swift */,
 				F00000000000000000000007 /* PopoverView.swift */,
 				F0000000000000000000000B /* LoginItem.swift */,
+				F0000000000000000000000C /* RegistryWatcher.swift */,
 				F00000000000000000000008 /* magicbar.entitlements */,
 				F00000000000000000000009 /* Assets.xcassets */,
 			);
@@ -153,6 +156,7 @@
 				B00000000000000000000006 /* MenuBarRenderer.swift in Sources */,
 				B00000000000000000000007 /* PopoverView.swift in Sources */,
 				B00000000000000000000009 /* LoginItem.swift in Sources */,
+				B0000000000000000000000A /* RegistryWatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

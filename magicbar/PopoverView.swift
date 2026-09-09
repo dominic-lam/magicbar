@@ -69,7 +69,7 @@ struct PopoverView: View {
         .padding(16)
         // A `.window`-style MenuBarExtra does not size itself to anything sensible, so the
         // width is fixed here and the height left free.
-        .frame(width: 320)
+        .frame(width: 340)
     }
 }
 
@@ -131,13 +131,13 @@ private struct ThresholdControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Stepper(value: $store.alertThreshold, in: (store.nagThreshold + 1)...100, step: 5) {
-                LabelledValue(title: "Show in menu bar below", value: "\(store.alertThreshold)%")
+                LabelledValue(title: "Show battery level in menu bar when below", value: "\(store.alertThreshold)%")
             }
 
             // Capped below the alert threshold so the two cannot cross. A nag threshold above
             // the alert threshold would notify about a device the menu bar was not showing.
             Stepper(value: $store.nagThreshold, in: 1...max(1, store.alertThreshold - 1), step: 1) {
-                LabelledValue(title: "Notify every % below", value: "\(store.nagThreshold)%")
+                LabelledValue(title: "Notify on every % drop below", value: "\(store.nagThreshold)%")
             }
         }
     }
@@ -249,7 +249,8 @@ private struct LabelledValue: View {
         HStack {
             Text(title)
                 .font(PopoverView.rowFont)
-            Spacer()
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
             Text(value)
                 .font(PopoverView.rowFont)
                 .monospacedDigit()

@@ -82,17 +82,6 @@ enum Urgency {
         }
     }
 
-    /// Notification text has no colour API — `UNMutableNotificationContent` exposes a title
-    /// and a body and nothing else. A coloured dot in the title is the only way to get the
-    /// level's colour into the words themselves.
-    var dot: String {
-        switch self {
-        case .critical: return "\u{1F534}"
-        case .low: return "\u{1F7E0}"
-        case .ok: return "\u{1F7E2}"
-        }
-    }
-
     var word: String {
         switch self {
         case .critical: return "battery critical"
