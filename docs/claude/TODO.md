@@ -96,12 +96,17 @@ Nothing known.
 
 ### Docs & hygiene
 
-- [ ] **Nothing in the repo shows what the app looks like.** The README describes three menu
-      bar states in prose and a reader deciding whether to build from source cannot see any of
-      them. `docs/review-shots/` holds nine, but they were taken for the 2026-09-08 review and
-      the popover has been rebuilt since, so they show settings that no longer exist.
-      *Next action:* retake the idle glyph, a low-battery label and the popover, and embed them
-      under "What it does".
+- [ ] **The README still cannot show a low battery.** Fixed in part on 2026-09-10: the app icon
+      sits under the title and a current popover shot is embedded under "What it does"
+      (`docs/screenshots/popover.png`, Affinity source beside it). The idle glyph is visible in
+      that shot's menu bar corner. What is still missing is the state the whole app exists for —
+      the orange and red menu bar label with a level bar — which cannot be captured without a
+      device actually being low, or `--simulate`.
+      *Next action:* capture the warn and urgent labels with
+      `open /Applications/magicbar.app --args --simulate "617:9,620:62"`, and add them beside
+      the prose that describes them.
+      *Note:* the nine shots in `docs/review-shots/` are evidence for the 2026-09-08 debrief and
+      show settings that no longer exist. Leave them; do not reuse them in user-facing docs.
 - [ ] **`MIGRATION.md` is gitignored**, so the decommissioning guide exists on one machine only.
       *Next action:* decide whether that is still right now that it covers the predecessor only.
 

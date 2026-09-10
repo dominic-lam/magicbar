@@ -1,5 +1,7 @@
 # magicbar
 
+<img src="magicbar/Assets.xcassets/AppIcon.appiconset/icon_256.png" alt="magicbar app icon: a mouse outline filled like a battery" width="128">
+
 > Because macOS won't tell you your Magic Mouse is dying until it already has.
 
 A macOS menu bar app that watches the battery in every Apple peripheral you own and gets
@@ -17,7 +19,9 @@ shown and the other stays one click away.
 **A device drops below 10%** — every further percent lost produces a notification. That is
 deliberate nagging: at that point you want to be bothered.
 
-Both thresholds are adjustable from the popover.
+Both thresholds are adjustable from the popover. Click the menu bar item to open it:
+
+<img src="docs/screenshots/popover.png" alt="The magicbar popover: a Magic Mouse at 42% and a Magic Keyboard at 60% as green level bars, a two-handle slider setting the urgent and warn levels, notification cadence rules, a daily reminder time, and an open-at-login toggle" width="360">
 
 ## Install
 
