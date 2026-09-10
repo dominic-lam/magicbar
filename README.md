@@ -21,7 +21,9 @@ deliberate nagging: at that point you want to be bothered.
 
 Both thresholds are adjustable from the popover. Click the menu bar item to open it:
 
-<img src="docs/screenshots/popover.png" alt="The magicbar popover: a Magic Mouse at 42% and a Magic Keyboard at 60% as green level bars, a two-handle slider setting the urgent and warn levels, notification cadence rules, a daily reminder time, and an open-at-login toggle" width="360">
+<p align="center">
+  <img src="docs/screenshots/popover.png" alt="The magicbar popover: a Magic Mouse at 42% and a Magic Keyboard at 60% as green level bars, a two-handle slider setting the urgent and warn levels, notification cadence rules, a daily reminder time, and an open-at-login toggle" width="360">
+</p>
 
 ## Install
 
