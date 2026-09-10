@@ -21,13 +21,16 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 ## Operating constraints
 
 **Installed and running** at `/Applications/magicbar.app`, registered as a login item.
-**Distribution is decided, not yet exercised.** 2026-09-09: open source only, no App Store, no
-$99/year developer account — the project's headroom does not cover it. Two GitHub Actions
-workflows exist (`.github/workflows/build.yml`, `release.yml`): build on every push, and an
-ad-hoc-signed zip to GitHub Releases on a `v*` tag. Both were run and verified **locally** in a
-clean clone; neither has ever executed on GitHub, because this commit is the first push of
-`.github/` and no tag has been pushed. Until a tag is pushed, installing still means building
-from source.
+**Distribution works.** 2026-09-09: open source only, no App Store, no $99/year developer
+account — the project's headroom does not cover it. Two GitHub Actions workflows
+(`.github/workflows/build.yml`, `release.yml`) build on every push and publish an ad-hoc-signed
+zip to GitHub Releases on a `v*` tag. Both ran green on GitHub on 2026-09-10, and
+`v1.2.0-rc.1` is published and verified by download. A hyphen in the tag marks it a
+prerelease, so the pipeline can be exercised without claiming a build is finished.
+
+The app is **not notarised** and will not be. A downloaded copy is rejected by Gatekeeper —
+confirmed, not assumed — so the user must approve it once under System Settings › Privacy &
+Security. The release notes carry that instruction; do not quietly drop it.
 
 - Build **Release** with `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` or notifications will never
   work. A Debug build is debuggable and macOS refuses it authorization.
@@ -41,10 +44,11 @@ from source.
 
 ## NEXT SESSION
 
-- [ ] **Push a `v1.2.0` tag and watch the release workflow run for real.** The distribution
-      decision is made (open source, ad-hoc signed zip on GitHub Releases) and the workflow
-      files are written, but they have only ever been exercised locally in a clean clone —
-      never on an actual GitHub runner. First tag push is the real test.
+- [ ] **Promote `v1.2.0-rc.1` to `v1.2.0`** once the daily reminder has fired at least once and
+      the drain estimate has produced a real number. The pipeline itself is proven: the rc was
+      published 2026-09-10, downloaded, and verified — checksum matches, signature survives the
+      round trip, version reads from the tag, no `get-task-allow`, and the binary runs. What is
+      not proven is the app inside it, which is the only reason this is still a candidate.
 - [ ] **Confirm the daily reminder fires, and carries the estimate.** Set the hour to the next
       one with a device below the warn level. It has never run. The estimate will read as
       absent until the history is a few days old, which is expected, not a fault.
