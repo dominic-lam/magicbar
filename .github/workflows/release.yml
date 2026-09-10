@@ -34,6 +34,15 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
+          # Semver says a hyphen means prerelease: v1.2.0-rc.1 is not v1.2.0.
+          # Without this every tag publishes as a finished release, so there is no
+          # way to test the pipeline without also claiming the build is ready.
+          if [[ "$TAG" == *-* ]]; then
+            echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Release
         run: |
           # MARKETING_VERSION comes from the tag rather than from the project file,
@@ -95,17 +104,18 @@ jobs:
 
           Requires macOS 14 or later.
           NOTES
-          # The heredoc is indented for readability; strip it back out.
-          sed -i '' 's/^          //' notes.md
           cat notes.md
 
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
+          # Unquoted below, so an empty value vanishes rather than becoming an
+          # empty argument that gh would reject.
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           # --generate-notes appends the commit list after the install notes.
           gh release create "${{ steps.version.outputs.tag }}" \
             magicbar.zip magicbar.zip.sha256 \
             --title "magicbar ${{ steps.version.outputs.tag }}" \
             --notes-file notes.md \
-            --generate-notes
+            --generate-notes $PRERELEASE
