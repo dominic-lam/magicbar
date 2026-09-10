@@ -16,10 +16,15 @@ item, allowed to notify. Swift and SwiftUI, one target, no packages, no backgrou
 Reviewed 2026-09-08 by four reviewers; fifteen of their 37 findings are closed and the rest are
 triaged in `docs/claude/debriefs/2026-09-08-design-review.md`.
 
-**Unverified:** the sleep and daily reminders, added 2026-09-09, have never fired.
+**The sleep reminder was removed 2026-09-09** — it could not be delivered while the Mac is
+sleeping, measured twice (see `ARCHITECTURE.md`). The daily reminder now carries a drain
+estimate ("about three days left") instead. Both the daily reminder and the estimate are
+**unverified**: the reminder has never fired, and the estimate is checked only against
+synthetic data.
 
-**No release exists** — no signed build, no notarisation, no cask. Installing means building
-from source, which both user reviewers named as the first wall they hit.
+**Distribution is decided, not yet exercised.** Open source only, no paid developer account.
+GitHub Actions build the app on every push and publish an ad-hoc-signed zip on a `v*` tag, but
+neither workflow has run on GitHub yet — only locally, in a clean clone.
 
 ## Runtime flow
 
@@ -28,7 +33,8 @@ IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
       → BatteryReader → [Device]  (lowest first)
           → BatteryStore  5s poll + IOKit change events · levels · low-water marks
               → MenuBarRenderer  idle glyph, or the alert in one of two styles
-              → Notifier         coarse and fine rules, plus sleep and daily reminders
+              → Notifier         coarse and fine rules, plus a daily reminder
+              → DrainHistory     sampled readings behind "about three days left"
 ```
 
 ## Key files
@@ -40,6 +46,7 @@ IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
 | `magicbar/MenuBarRenderer.swift` | both label states and both alert styles |
 | `magicbar/RangeSlider.swift` | the two-handle level slider |
 | `magicbar/Notifier.swift` | authorization and delivery, with the bundle guard |
+| `magicbar/DrainHistory.swift` | the sampled series and the "about 3 days left" fit |
 | `docs/claude/ARCHITECTURE.md` | why each of the above is shaped that way |
 
 ## Build and run
@@ -60,12 +67,14 @@ permission. Install to `/Applications`, never run from the build directory, and 
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-label        # + writes both tiles to /tmp
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-cadence "19,14,9,8"
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-retention
+/Applications/magicbar.app/Contents/MacOS/magicbar --dump-estimate     # + the stored drain series and its fit
 open /Applications/magicbar.app --args --simulate "617:9,620:62"       # "+" suffix = charging
 log show --last 5m --predicate 'eventMessage CONTAINS "[magicbar]"'
 ```
 
-The three `--dump-*` rules exist because a rule that only lives inside a drawing or polling loop
-cannot be checked. Two of the bugs found in review were of exactly that shape.
+The `--dump-*` rules exist because a rule that only lives inside a drawing or polling loop, or
+inside days of accumulated history, cannot be checked. Two of the bugs found in review were of
+exactly the drawing-loop shape; the drain estimate is the history-shaped case.
 
 ## Gotchas
 

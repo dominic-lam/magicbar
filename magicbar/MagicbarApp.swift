@@ -126,6 +126,18 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
+        // The estimate is the one rule in this app that cannot be checked by looking: it
+        // depends on days of accumulated history, so a wrong slope would sit there being
+        // plausible. This prints the stored series and the number it implies.
+        if arguments.contains("--dump-estimate") {
+            SimulatedReadings.parseLaunchArguments(arguments)
+            let store = BatteryStore()
+            store.refresh()
+            print(store.describeDrain())
+            UserDefaults.standard.synchronize()
+            exit(0)
+        }
+
         if arguments.contains("--dump-devices") {
             SimulatedReadings.parseLaunchArguments(arguments)
             // Which device the menu bar picks, so the ranking rule can be checked from a

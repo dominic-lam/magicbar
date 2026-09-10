@@ -1,0 +1,111 @@
+name: Release
+
+# Tag `v1.2.0`, get a zip on the Releases page. The alternative was a README that
+# asks a stranger to install Xcode, and both user reviewers named that as the wall
+# they hit first.
+#
+# What this cannot do: notarise. That needs a paid Apple Developer account, so the
+# app is ad-hoc signed and macOS will ask the user to approve it once by hand.
+# README § Install carries that instruction; do not quietly drop it.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and release, e.g. v1.2.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Read the version out of the tag
+        id: version
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Release
+        run: |
+          # MARKETING_VERSION comes from the tag rather than from the project file,
+          # which had drifted to 1.0.0 while the docs said 1.1.0. The tag is the
+          # only version anyone can actually see, so it wins.
+          xcodebuild -project magicbar.xcodeproj \
+                     -scheme magicbar \
+                     -configuration Release \
+                     -derivedDataPath build/DerivedData \
+                     MARKETING_VERSION="${{ steps.version.outputs.version }}" \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_IDENTITY="" \
+                     DEVELOPMENT_TEAM="" \
+                     build
+
+      - name: Sign ad hoc
+        run: |
+          APP=build/DerivedData/Build/Products/Release/magicbar.app
+          # An unsigned app cannot register a login item at all: SMAppService
+          # refuses one. Ad hoc is the strongest signature available without a
+          # paid account, and it is enough for SMAppService.
+          #
+          # Signing by hand rather than through Xcode is also what keeps
+          # notifications working. The local build passes
+          # CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO to stop Xcode adding
+          # get-task-allow, which makes the app debuggable and makes macOS refuse
+          # it notification authorization — permanently, per bundle ID. Here the
+          # entitlements file is handed over whole, so nothing is injected.
+          codesign --force --sign - \
+                   --options runtime \
+                   --entitlements magicbar/magicbar.entitlements \
+                   "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign --display --entitlements - "$APP"
+
+      - name: Package
+        run: |
+          APP=build/DerivedData/Build/Products/Release/magicbar.app
+          # ditto, not zip: it preserves the signature and the bundle's extended
+          # attributes, and a zip that breaks the signature produces the "damaged,
+          # move to Trash" dialog rather than the approvable one.
+          ditto -c -k --keepParent --sequesterRsrc "$APP" magicbar.zip
+          shasum -a 256 magicbar.zip | tee magicbar.zip.sha256
+
+      - name: Write the install notes
+        run: |
+          # A release page is the first thing a stranger reads, and step 3 is the
+          # one that decides whether they get a working app or a scary dialog.
+          cat > notes.md <<'NOTES'
+          ### Install
+
+          1. Download `magicbar.zip`, unzip it, drag **magicbar.app** to **Applications**.
+          2. Open it. macOS will refuse the first time.
+          3. **System Settings → Privacy & Security**, scroll down, click **Open Anyway**.
+
+          Step 3 is unavoidable. The app is signed but not notarised, because notarising
+          needs a paid Apple Developer account and this is a free side project.
+
+          Requires macOS 14 or later.
+          NOTES
+          # The heredoc is indented for readability; strip it back out.
+          sed -i '' 's/^          //' notes.md
+          cat notes.md
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # --generate-notes appends the commit list after the install notes.
+          gh release create "${{ steps.version.outputs.tag }}" \
+            magicbar.zip magicbar.zip.sha256 \
+            --title "magicbar ${{ steps.version.outputs.tag }}" \
+            --notes-file notes.md \
+            --generate-notes

@@ -171,6 +171,7 @@ MagicbarApp.swift      @main, the MenuBarExtra scene, diagnostic launch argument
 BatteryReader.swift    IORegistry enumeration + the --simulate injection point
 Device.swift           model, identity, icon mapping, display name
 BatteryStore.swift     poll timer, thresholds, low-water marks, colour
+DrainHistory.swift     sampled readings and the "about 3 days left" fit
 Notifier.swift         UNUserNotificationCenter, guarded against a missing bundle
 MenuBarRenderer.swift  NSImage composition for both label states
 LoginItem.swift        SMAppService registration
@@ -188,8 +189,16 @@ allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen
 findings are closed, and the rest are triaged in
 `docs/claude/debriefs/2026-09-08-design-review.md`.
 
-**Unverified:** the two reminders added on 2026-09-09 — one as the Mac sleeps, one at a chosen
-hour — are wired but have never fired.
+**Distribution is decided.** Open source only — no App Store, no paid Apple Developer account.
+Two GitHub Actions workflows (build-on-push, ad-hoc-signed release on a `v*` tag) are written
+and verified locally, but have never run on GitHub: this session is the first push of
+`.github/`, and no tag has been pushed yet.
 
-**No release exists.** Installing means building from source with a build flag, which both user
-reviewers named as the first wall they hit. That decision is the next session's subject.
+**The sleep reminder was removed.** It could not be delivered as the Mac sleeps — the display
+and the audio device are both already off by the time the app is told, measured twice — and
+delivering it at wake instead lands on the one moment a Magic Mouse cannot be charged. The
+daily reminder at a chosen hour is now the only reminder tied to a moment, and it is
+**unverified** — wired, never fired.
+
+**Unverified:** the drain estimate ("about three days left"), shipped 2026-09-09 and checked
+only against synthetic data — see `docs/claude/ARCHITECTURE.md`.

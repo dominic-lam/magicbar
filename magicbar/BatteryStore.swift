@@ -93,12 +93,6 @@ final class BatteryStore: ObservableObject {
         didSet { UserDefaults.standard.set(fineLevel.rawValue, forKey: "fineLevel") }
     }
 
-    /// Warn when the machine goes to sleep, so the message is waiting when the user next sits
-    /// down — which is when a cable costs them nothing.
-    @Published var notifyOnSleep: Bool {
-        didSet { UserDefaults.standard.set(notifyOnSleep, forKey: "notifyOnSleep") }
-    }
-
     /// A daily check at a chosen hour. The scheduled version of the same idea, for the evenings
     /// the machine never sleeps.
     @Published var eveningReminderEnabled: Bool {
@@ -158,6 +152,10 @@ final class BatteryStore: ObservableObject {
     private var firedLaunchTest = false
     private var timer: Timer?
     private let watcher = RegistryWatcher()
+
+    /// Timestamped readings behind the "about three days left" estimate. Persisted, because
+    /// the whole point is a series longer than one launch.
+    private var drain = DrainHistory.load()
     private var coalesceTask: Task<Void, Never>?
     private let notifier = Notifier()
 
@@ -199,7 +197,6 @@ final class BatteryStore: ObservableObject {
             "coarseLevel": Level.warn.rawValue,
             "fineEnabled": true,
             "fineLevel": Level.urgent.rawValue,
-            "notifyOnSleep": true,
             "eveningReminderEnabled": true,
             "eveningReminderHour": 18,
         ])
@@ -214,7 +211,6 @@ final class BatteryStore: ObservableObject {
         coarseLevel = Level(rawValue: defaults.string(forKey: "coarseLevel") ?? "") ?? .warn
         fineEnabled = defaults.bool(forKey: "fineEnabled")
         fineLevel = Level(rawValue: defaults.string(forKey: "fineLevel") ?? "") ?? .urgent
-        notifyOnSleep = defaults.bool(forKey: "notifyOnSleep")
         eveningReminderEnabled = defaults.bool(forKey: "eveningReminderEnabled")
         eveningReminderHour = defaults.integer(forKey: "eveningReminderHour")
         lowWaterMarks = defaults.dictionary(forKey: marksDefaultsKey) as? [String: Int] ?? [:]
@@ -243,15 +239,6 @@ final class BatteryStore: ObservableObject {
             defaults.set(true, forKey: "didOfferLoginItem")
             LoginItem.setEnabled(true)
             launchAtLogin = LoginItem.isEnabled
-        }
-
-        // Warn as the machine goes to sleep. The message will not be read until the user next
-        // sits down — which is the point: that is when a cable is free, rather than mid-task
-        // when flipping a mouse over costs them the mouse.
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.warnBeforeSleep() }
         }
 
         // The system tells us when a peripheral changes, which is what makes plugging a cable
@@ -356,8 +343,57 @@ final class BatteryStore: ObservableObject {
         if devices.first(where: { $0.id == testDeviceID }) == nil {
             testDeviceID = devices.first?.id ?? ""
         }
+        // Only live readings feed the estimate. A stale entry is a remembered number with a
+        // stale timestamp, and feeding it in would draw a flat line through a sleeping mouse.
+        var changed = false
+        for device in devices where !device.isStale {
+            if drain.record(id: device.id, percent: device.percent, isCharging: device.isCharging) {
+                changed = true
+            }
+        }
+        // A device that is gone for good should not keep its curve forever.
+        for id in drain.series.keys where !present.contains(id) && lastSeen[id] == nil {
+            drain.forget(id: id)
+            changed = true
+        }
+        if changed {
+            drain.save()
+            NSLog("%@", "[magicbar] drain history: \(drain.series.mapValues(\.count))")
+        }
+
         for device in devices where !device.isStale { evaluateNotification(for: device) }
         checkEveningReminder()
+    }
+
+    /// "about 3 days left", or nil while the series is too short or too new to mean anything.
+    ///
+    /// Returns nothing rather than a guess. A number invented from two readings an hour apart
+    /// would be wrong by a factor of ten and believed anyway, which is worse than a blank.
+    func estimate(for device: Device) -> String? {
+        guard !device.isCharging, !device.isStale else { return nil }
+        return drain.phrase(id: device.id, percent: device.percent)
+    }
+
+    /// The stored series and what it currently implies, for `--dump-estimate`.
+    func describeDrain() -> String {
+        guard !drain.series.isEmpty else { return "no samples recorded yet" }
+        var lines: [String] = []
+        for (id, samples) in drain.series.sorted(by: { $0.key < $1.key }) {
+            let name = devices.first(where: { $0.id == id })?.shortName ?? id
+            let span = (samples.last?.at.timeIntervalSince(samples.first?.at ?? .now) ?? 0) / 3600
+            let rate = drain.ratePerHour(id: id)
+            let percent = devices.first(where: { $0.id == id })?.percent ?? samples.last?.percent ?? 0
+            lines.append("\(name) [\(id)]")
+            lines.append("  samples: \(samples.count) over \(String(format: "%.1f", span))h "
+                         + "(needs \(DrainHistory.minimumSamples) over "
+                         + "\(Int(DrainHistory.minimumSpan / 3600))h)")
+            lines.append("  rate:    " + (rate.map { String(format: "%.3f %%/h", $0) } ?? "not enough data"))
+            lines.append("  says:    " + (drain.phrase(id: id, percent: percent) ?? "nothing yet"))
+            for sample in samples.suffix(8) {
+                lines.append("    \(sample.at.formatted(date: .abbreviated, time: .shortened))  \(sample.percent)%")
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     func threshold(for level: Level) -> Int {
@@ -426,22 +462,9 @@ final class BatteryStore: ObservableObject {
         }
     }
 
-    /// Fired as the machine sleeps, if anything is below the warn level.
-    ///
-    /// Deliberately outside the low-water-mark rule: this is not a new low, it is the same
-    /// reading delivered at a better moment, so it neither consumes nor is suppressed by the
-    /// ordinary cadence.
-    private func warnBeforeSleep() {
-        guard notificationsEnabled, notifyOnSleep else { return }
-        guard let device = devices.first(where: { !$0.isCharging && !$0.isStale
-                                                  && $0.percent < alertThreshold }) else { return }
-        NSLog("%@", "[magicbar] sleep warning for \(device.shortName) at \(device.percent)%")
-        notifier.notifyChargeReminder(device: device, urgency: urgency(for: device.percent),
-                                      sound: alertSound,
-                                      reason: "Charge it while you are away")
-    }
-
-    /// The scheduled twin of the sleep warning, for evenings the machine never sleeps.
+    /// A daily check at a chosen hour — the only warning that reaches the user while they are
+    /// still sitting at the Mac with a cable free. Nothing can be delivered at the moment of
+    /// sleep itself; see ARCHITECTURE.md for the two measurements that establish it.
     ///
     /// Checked on the ordinary poll rather than by its own timer: a timer that has to survive
     /// sleep, clock changes and time zones is a whole mechanism, where a comparison against the
@@ -457,10 +480,13 @@ final class BatteryStore: ObservableObject {
         guard let device = devices.first(where: { !$0.isCharging && !$0.isStale
                                                   && $0.percent < alertThreshold }) else { return }
         lastEveningReminder = now
-        NSLog("%@", "[magicbar] evening reminder for \(device.shortName) at \(device.percent)%")
+        // The estimate is the whole reason this reminder is worth reading: without it the
+        // message repeats a number the user can already see in the menu bar.
+        let reason = estimate(for: device).map { "\($0). Charge it tonight" } ?? "Charge it tonight"
+        NSLog("%@", "[magicbar] evening reminder for \(device.shortName) at \(device.percent)% — \(reason)")
         notifier.notifyChargeReminder(device: device, urgency: urgency(for: device.percent),
                                       sound: alertSound,
-                                      reason: "Charge it tonight")
+                                      reason: reason)
     }
 
     private func persistMarks() {

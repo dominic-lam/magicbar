@@ -13,16 +13,29 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 
 | Feature | Status | Next step |
 |---|---|---|
-| Drain estimate ("about 3 days left") | Committed | Decide sampling rate and storage |
 | Charge-complete alert | Idea | Needs a charged state, which needs the flag pinned |
 | Keep a sleeping device visible | Committed | Decide the staleness cutoff |
 | Both devices in the menu bar at once | Idea | Decide how wide is too wide |
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
-| Sleep/wake awareness | Idea | Measure how late the first post-wake reading is |
 
 ---
 
 ## Shipped
+
+### Drain estimate — 2026-09-09
+
+"About three days left" under each device in the popover, and inside the daily reminder so it
+says something the menu bar does not. A least-squares slope through readings sampled on change
+rather than on the timer, cleared by a charge, and silent until three samples span six hours.
+`--dump-estimate` prints the series and the fit. Detail in `ARCHITECTURE.md`.
+
+### Sleep reminder — built and removed, 2026-09-09
+
+Warning the user as they put the Mac to sleep is not possible: the display and the audio device
+are both already off when an app is told a sleep is happening, measured twice. Delivering it at
+wake instead worked, but a Magic Mouse charges port-down and cannot be used while charging, so
+wake is the one moment the user cannot act. Removed rather than left half-useful. The
+measurements are kept in `ARCHITECTURE.md` so it is not attempted again.
 
 ### Native menu bar app — v1.0.0
 
@@ -74,12 +87,6 @@ under deuteranopia.
 
 ## Committed
 
-### Drain estimate
-
-"About three days left" rather than a percentage. Both user reviewers asked for it, and the
-daily reminder needs it to say something useful rather than repeat a number. Needs history: a
-thirty-day ring buffer in a preferences file is enough, not a database.
-
 ### Keep a sleeping device visible
 
 A disconnected peripheral vanishes from the registry, so it vanishes from the popover, which
@@ -104,11 +111,6 @@ unverified.
 
 After a long sleep the first reading is up to a poll interval late. An `NSWorkspace`
 wake observer would make it immediate.
-
-### Charge-rate estimate
-
-"About 3 days left" rather than a percentage, from the observed drain rate. Needs history,
-which nothing currently keeps.
 
 ---
 

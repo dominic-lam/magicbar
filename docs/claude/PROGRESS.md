@@ -38,7 +38,7 @@ Archive the oldest 10 entries when the Session Log exceeds 15 → `docs/archive/
 
 | | |
 |---|---|
-| Swift source files | 10 |
+| Swift source files | 11 |
 | Third-party dependencies | 0 |
 | Dependencies dropped in the rewrite | SwiftBar, terminal-notifier, launchd |
 | Devices monitored | every peripheral that reports a battery, discovered not configured |
@@ -48,6 +48,11 @@ Archive the oldest 10 entries when the Session Log exceeds 15 → `docs/archive/
 Newest first, directly below the marker. Three-line format, one entry per session.
 
 <!-- Append new entries here -->
+
+## 2026-09-09 (Session 4 — distribution decided, the sleep reminder proven undeliverable, the drain estimate shipped)
+**Completed:** Decided distribution — open source only, no paid Apple Developer account, so no App Store or notarisation — and built two GitHub Actions workflows for it: a build check on every push, and an ad-hoc-signed Release zip on a `v*` tag, both verified locally in a clean clone. Found and fixed the wake reminder nagging on every quick lid-close instead of only a real absence. Then built, measured and removed a sleep-time chime: both a notification and a sound proved undeliverable at the moment of sleep — the display and the audio device are both already off by the time the app is told — and the second attempt stalled every sleep by fifteen seconds, caught in the system's own power log. Replaced the whole sleep/wake reminder with a persisted, timestamped drain history and a least-squares "about three days left" estimate, shown in the popover and folded into the daily reminder, verified against ten synthetic series and a new `--dump-estimate` diagnostic.
+**In progress:** The release workflows have never run on GitHub — only locally. The drain estimate has never been checked against a real week of battery data, only synthetic ones.
+**Next session should:** Push a `v1.2.0` tag and confirm the release workflow actually produces a working signed zip on GitHub, not just in a local clone.
 
 ## 2026-09-09 (Session 3 — reviewed by four, four defects fixed, and the settings rebuilt)
 **Completed:** Ran four reviewers over the app, two briefed as designers and two role-playing users, and recorded all 37 findings in `debriefs/2026-09-08-design-review.md`. Fixed the four real defects they found, including a charging device hiding a dying one and a repeat of the fill-floor bug in the notification tile. Rebuilt the settings around a two-handle level slider to the user's own design, replaced the notification model with a master switch plus two independently targeted cadence rules, added sleep and daily charge reminders, and made the high-contrast alert style an option rather than the default.

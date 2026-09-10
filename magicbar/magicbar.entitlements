@@ -5,7 +5,8 @@
 	<!-- Sandbox off, matching Range. Reading peripheral battery levels out of the IO
 	     registry does work sandboxed (iokit-get-properties is not denied by the App
 	     Sandbox profile), but a future tightening would degrade it silently rather than
-	     with an error, and there is no upside for an app that is never distributed. -->
+	     with an error, and there is no upside here. This file is also what the release
+	     workflow hands to codesign, so anything added to it ships. -->
 	<key>com.apple.security.app-sandbox</key>
 	<false/>
 </dict>

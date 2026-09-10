@@ -1,0 +1,32 @@
+name: Build
+
+# Every push and every pull request. This project has no test target, so a clean
+# compile on a machine that is not the author's is the whole check — and it is the
+# check that matters, because the only build instructions anyone has are prose.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Release
+        run: |
+          # A runner has no Apple Development identity, so signing is turned off
+          # outright rather than left to fail on a provisioning profile lookup.
+          # DEVELOPMENT_TEAM has to be cleared too — an empty CODE_SIGN_IDENTITY
+          # with a team still set sends xcodebuild looking for a profile.
+          xcodebuild -project magicbar.xcodeproj \
+                     -scheme magicbar \
+                     -configuration Release \
+                     -derivedDataPath build/DerivedData \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_IDENTITY="" \
+                     DEVELOPMENT_TEAM="" \
+                     build

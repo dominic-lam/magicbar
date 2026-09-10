@@ -42,7 +42,8 @@ struct PopoverView: View {
             } else {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(store.devices) { device in
-                        DeviceRow(device: device, color: store.color(for: device.percent))
+                        DeviceRow(device: device, color: store.color(for: device.percent),
+                                  estimate: store.estimate(for: device))
                     }
                 }
             }
@@ -91,6 +92,8 @@ struct PopoverView: View {
 private struct DeviceRow: View {
     let device: Device
     let color: Color
+    /// "about 3 days left", or nil while there is not enough history to say.
+    let estimate: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -135,6 +138,14 @@ private struct DeviceRow: View {
                     .foregroundStyle(color)
                     .monospacedDigit()
                     .frame(width: 44, alignment: .trailing)
+            }
+
+            // Absent until the series is long enough to mean something, which is days after a
+            // fresh install. A row with no estimate is the normal early state, not a fault.
+            if let estimate {
+                Text(estimate)
+                    .font(PopoverView.rowFont)
+                    .foregroundStyle(.secondary)
             }
         }
         // A remembered reading is dimmed, so it never reads as live data.
@@ -238,10 +249,6 @@ private struct NotificationSection: View {
                            enabled: $store.coarseEnabled, level: $store.coarseLevel)
                 CadenceRow(label: "Every 1% drop below",
                            enabled: $store.fineEnabled, level: $store.fineLevel)
-
-                Toggle("Remind me when the Mac sleeps", isOn: $store.notifyOnSleep)
-                    .font(PopoverView.rowFont)
-                    .toggleStyle(.checkbox)
 
                 HStack(spacing: 6) {
                     Toggle("Remind me each day at", isOn: $store.eveningReminderEnabled)

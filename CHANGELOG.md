@@ -5,6 +5,21 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Internal session history is in `docs/claude/PROGRESS.md`.
 
+## [Unreleased]
+
+### Added
+- **A drain estimate** — "about three days left" under each device in the popover, and inside
+  the daily reminder so it says something the menu bar does not already show. It stays blank
+  until it has watched the battery for a few days, which is deliberate: a number guessed from
+  two readings would be wrong by a factor of ten and believed anyway.
+
+### Removed
+- **The sleep reminder.** A warning cannot be delivered as the Mac goes to sleep — the screen
+  and the speaker are both already off by the time an app is told, measured twice. Delivering
+  it on wake instead did work, but a Magic Mouse charges port-down and cannot be used while
+  charging, so wake is the one moment you cannot act on it. The reminder at a chosen hour is
+  now the only one tied to a moment, and it is the one that reaches you while a cable is free.
+
 ## [1.1.0] — 2026-09-09
 
 Reshaped after a design review. Fifteen of 37 findings closed; the rest are triaged in
@@ -15,6 +30,7 @@ Reshaped after a design review. Fifteen of 37 findings closed; the rest are tria
   a chosen hour each day. Both fire only if something is below the warn level, and neither
   consumes the ordinary cadence. This was the half the app was missing: a percentage arriving
   mid-task is a more detailed ambush, where the same reading at bedtime is actionable.
+  *(The sleep half was removed again in Unreleased — it could not be delivered.)*
 - **"High contrast alerts"**, off by default. Draws the menu bar alert as a solid badge with
   dark content and marks the urgent level with a warning symbol as well as a colour.
 - The menu bar reading can now be shown below either level, or always.

@@ -21,8 +21,13 @@ were dissolved by that rewrite rather than fixed — see PROGRESS.md.*
 ## Operating constraints
 
 **Installed and running** at `/Applications/magicbar.app`, registered as a login item.
-**No release exists** — no signed build, no notarisation, no cask. Installing means building from
-source, which is the first wall both user reviewers hit.
+**Distribution is decided, not yet exercised.** 2026-09-09: open source only, no App Store, no
+$99/year developer account — the project's headroom does not cover it. Two GitHub Actions
+workflows exist (`.github/workflows/build.yml`, `release.yml`): build on every push, and an
+ad-hoc-signed zip to GitHub Releases on a `v*` tag. Both were run and verified **locally** in a
+clean clone; neither has ever executed on GitHub, because this commit is the first push of
+`.github/` and no tag has been pushed. Until a tag is pushed, installing still means building
+from source.
 
 - Build **Release** with `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` or notifications will never
   work. A Debug build is debuggable and macOS refuses it authorization.
@@ -36,14 +41,13 @@ source, which is the first wall both user reviewers hit.
 
 ## NEXT SESSION
 
-- [ ] **Decide how to release this.** Both user reviewers hit the same first wall: the install
-      is a wall of Terminal commands and there is no signed build. The open questions are
-      whether it is distributed at all, and if so whether that means a notarised build, a
-      Homebrew cask, or just a drag-to-Applications zip. Everything else in this file is
-      smaller than that decision.
-- [ ] **Confirm the two new reminders actually fire.** Sleep the Mac with a device below the
-      warn level, and set the daily hour to the next one. Both are wired and neither has ever
-      run. *(User is testing over the next few days — 2026-09-09.)*
+- [ ] **Push a `v1.2.0` tag and watch the release workflow run for real.** The distribution
+      decision is made (open source, ad-hoc signed zip on GitHub Releases) and the workflow
+      files are written, but they have only ever been exercised locally in a clean clone —
+      never on an actual GitHub runner. First tag push is the real test.
+- [ ] **Confirm the daily reminder fires, and carries the estimate.** Set the hour to the next
+      one with a device below the warn level. It has never run. The estimate will read as
+      absent until the history is a few days old, which is expected, not a fault.
 - [ ] **Retire the predecessor scripts** per `MIGRATION.md`, once a reboot confirms magicbar
       starts itself.
 
@@ -62,13 +66,17 @@ source, which is the first wall both user reviewers hit.
 - [ ] **The test button is gated behind developer mode**, which is where the one check a normal
       user needs is hardest to find.
       *Next action:* promote it, and decide whether the slider stays behind ⌥.
-- [ ] **A drain estimate — "about three days left".** Both user reviewers asked for it and it is
-      what makes the daily reminder able to say something useful rather than repeat a number.
-      Needs history, but a thirty-day ring buffer in a plist is enough.
-      *Next action:* decide the sampling rate and where it lives.
+- [ ] **Watch the drain estimate against reality.** Shipped 2026-09-09 and verified only
+      against synthetic series. In a week, compare what `--dump-estimate` says to what actually
+      happened. *Next action:* re-read it around 2026-09-16.
 - [ ] **Snooze on the notification.** Raised by all four, but partly answered: unticking the 1%
       rule is now a standing "stop nagging me". A per-occasion snooze is still missing.
       *Next action:* decide whether the standing setting is enough.
+
+- [ ] **The daily reminder is now the only reminder tied to a moment.** The sleep reminder was
+      removed on 2026-09-09 — nothing can be delivered as the Mac sleeps, and wake is when a
+      Magic Mouse cannot be charged. That puts more weight on the daily hour being right.
+      *Next action:* pick an hour that is actually before the user stops for the night.
 
 ## Previously active
 

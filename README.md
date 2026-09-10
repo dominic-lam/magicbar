@@ -21,6 +21,21 @@ Both thresholds are adjustable from the popover.
 
 ## Install
 
+### Download it
+
+Grab `magicbar.zip` from [Releases](https://github.com/dominic-lam/magicbar/releases), unzip,
+drag **magicbar.app** to **Applications**, and open it.
+
+macOS will refuse the first time. Go to **System Settings › Privacy & Security**, scroll to
+the bottom, and click **Open Anyway**.
+
+That step is unavoidable and it is not a bug. Getting rid of it means notarising the app,
+notarising needs a paid Apple Developer account, and this is a free side project with no
+income to pay for one. The app is signed — just not by anyone Apple has been paid to
+recognise.
+
+### Or build it
+
 ```
 git clone git@github.com:dominic-lam/magicbar.git
 cd magicbar
@@ -30,6 +45,8 @@ cp -R "$(xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration 
   -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $2; exit}')/magicbar.app" /Applications/
 open /Applications/magicbar.app
 ```
+
+A locally built copy is never quarantined, so it skips the Privacy & Security step entirely.
 
 `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` is not optional. Without it the build carries
 `com.apple.security.get-task-allow`, which marks the app debuggable, and macOS will not grant
@@ -47,8 +64,8 @@ screen instead of vanishing after a few seconds. Neither can be set programmatic
 
 ## Requirements
 
-macOS 14 or later, and Xcode to build it. No Homebrew packages, no SwiftBar, no
-`terminal-notifier`, no launchd job, no third-party dependencies of any kind.
+macOS 14 or later. Xcode only if you build it yourself. No Homebrew packages, no SwiftBar,
+no `terminal-notifier`, no launchd job, no third-party dependencies of any kind.
 
 ## How it works
 
