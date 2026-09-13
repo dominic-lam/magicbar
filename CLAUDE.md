@@ -28,9 +28,11 @@ Rewritten from a bash implementation on 2026-09-08; that version is preserved at
 - **docs/claude/TODO.md** — open work only: NEXT SESSION, Active, Watch list
 - **docs/claude/PROGRESS.md** — session log and navigation index
 - **docs/reference/PROJECT_BRIEF.md** — fast snapshot: flow, key files, gotchas
-- **README.md** — user-facing install and troubleshooting
+- **README.md** — for general users: plain language, no terminal commands
+- **docs/DEVELOPMENT.md** — build from source, terminal troubleshooting, diagnostic arguments
 - **CHANGELOG.md** — user-facing version history
 - **MIGRATION.md** — retiring the predecessor ad-hoc scripts. **Gitignored**, this machine only.
+- **docs/launch/REDDIT.md** — subreddit choices and post drafts. **Gitignored**, this machine only.
 
 **Read first** in a new session: `TODO.md`, then `docs/reference/PROJECT_BRIEF.md`.
 
@@ -177,22 +179,30 @@ MenuBarRenderer.swift  NSImage composition for both label states
 LoginItem.swift        SMAppService registration
 RangeSlider.swift      the two-handle level slider
 RegistryWatcher.swift  IOKit change notifications, so a cable lands at once
+UpdateChecker.swift    daily GitHub release check — the app's only network access; never installs
 PopoverView.swift      device rows, threshold steppers, login toggle, Quit
 ```
 
 ---
 
-## Current State (2026-09-09)
+## Current State (2026-09-12)
 
 Built, installed at `/Applications/magicbar.app`, running, registered as a login item, and
 allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen of their 37
 findings are closed, and the rest are triaged in
 `docs/claude/debriefs/2026-09-08-design-review.md`.
 
-**Distribution is decided.** Open source only — no App Store, no paid Apple Developer account.
-Two GitHub Actions workflows (build-on-push, ad-hoc-signed release on a `v*` tag) are written
-and verified locally, but have never run on GitHub: this session is the first push of
-`.github/`, and no tag has been pushed yet.
+**Distribution works.** Open source only — no App Store, no paid Apple Developer account.
+Both GitHub Actions workflows (build-on-push, ad-hoc-signed release on a `v*` tag) ran green on
+GitHub on 2026-09-10, and `v1.2.0-rc.1` is published and verified by download.
+
+**One network call.** Since 2026-09-12 `UpdateChecker` asks GitHub for the latest release at
+launch, daily, and on "Check now". It never downloads or installs; installing was declined (see
+`FEATURES.md`). Keep `MARKETING_VERSION` in step with the next tag.
+
+**The diagnostics are not isolated from real data.** They build a real `BatteryStore` on
+`UserDefaults.standard`; `--dump-retention` corrupted the real drain history on 2026-09-12.
+Open in `TODO.md` — do not run it against the installed app until fixed.
 
 **The sleep reminder was removed.** It could not be delivered as the Mac sleeps — the display
 and the audio device are both already off by the time the app is told, measured twice — and

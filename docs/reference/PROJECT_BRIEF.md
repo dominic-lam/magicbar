@@ -10,21 +10,26 @@ a silent glyph to a coloured level bar to a notification per lost percent.
 
 ## Current status
 
-**v1.1.0, built and running.** Installed at `/Applications/magicbar.app`, registered as a login
-item, allowed to notify. Swift and SwiftUI, one target, no packages, no background job.
+**v1.2.0 candidate, built and running.** Installed at `/Applications/magicbar.app`, registered
+as a login item, allowed to notify. Swift and SwiftUI, one target, no packages, no background
+job. One network call since 2026-09-12: an optional daily GitHub update check that never
+installs anything.
 
 Reviewed 2026-09-08 by four reviewers; fifteen of their 37 findings are closed and the rest are
 triaged in `docs/claude/debriefs/2026-09-08-design-review.md`.
 
 **The sleep reminder was removed 2026-09-09** — it could not be delivered while the Mac is
 sleeping, measured twice (see `ARCHITECTURE.md`). The daily reminder now carries a drain
-estimate ("about three days left") instead. Both the daily reminder and the estimate are
-**unverified**: the reminder has never fired, and the estimate is checked only against
-synthetic data.
+estimate ("about three days left") instead. **The daily reminder is unverified** — it has never
+fired (logs checked 2026-09-12). The estimate has produced real numbers since 2026-09-12, but
+looks optimistic against the mouse's recent drain.
 
-**Distribution is decided, not yet exercised.** Open source only, no paid developer account.
-GitHub Actions build the app on every push and publish an ad-hoc-signed zip on a `v*` tag, but
-neither workflow has run on GitHub yet — only locally, in a clean clone.
+**Distribution works (2026-09-10).** Open source only, no paid developer account. GitHub
+Actions build the app on every push and publish an ad-hoc-signed zip on a `v*` tag; both ran
+green on GitHub, and `v1.2.0-rc.1` is published and verified by download.
+
+**The diagnostics write to real app data** (found 2026-09-12) — see `TODO.md` before running
+`--dump-retention`.
 
 ## Runtime flow
 
@@ -35,6 +40,7 @@ IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
               → MenuBarRenderer  idle glyph, or the alert in one of two styles
               → Notifier         coarse and fine rules, plus a daily reminder
               → DrainHistory     sampled readings behind "about three days left"
+UpdateChecker  GitHub latest release, at launch + daily + "Check now" → footer link
 ```
 
 ## Key files
@@ -47,7 +53,9 @@ IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
 | `magicbar/RangeSlider.swift` | the two-handle level slider |
 | `magicbar/Notifier.swift` | authorization and delivery, with the bundle guard |
 | `magicbar/DrainHistory.swift` | the sampled series and the "about 3 days left" fit |
+| `magicbar/UpdateChecker.swift` | the update check — the app's only network access |
 | `docs/claude/ARCHITECTURE.md` | why each of the above is shaped that way |
+| `docs/DEVELOPMENT.md` | build, terminal troubleshooting, every launch argument |
 
 ## Build and run
 
@@ -68,6 +76,8 @@ permission. Install to `/Applications`, never run from the build directory, and 
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-cadence "19,14,9,8"
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-retention
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-estimate     # + the stored drain series and its fit
+/Applications/magicbar.app/Contents/MacOS/magicbar --check-updates     # one real GitHub request
+open /Applications/magicbar.app --args --simulate-update 1.3.0         # footer notice, no request
 open /Applications/magicbar.app --args --simulate "617:9,620:62"       # "+" suffix = charging
 log show --last 5m --predicate 'eventMessage CONTAINS "[magicbar]"'
 ```

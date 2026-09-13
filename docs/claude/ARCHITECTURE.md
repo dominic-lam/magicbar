@@ -359,6 +359,31 @@ cleaned. Status is logged at launch as the only terminal-visible signal.
 
 ---
 
+## Checking for updates
+
+*Added 2026-09-12.*
+
+**The app's only network access.** `UpdateChecker` asks
+`api.github.com/repos/dominic-lam/magicbar/releases/latest` for the newest non-prerelease tag at
+launch, every 24 hours, and on a "Check now" click. It never downloads or installs anything:
+the footer link opens the Releases page. Installing was declined; see `FEATURES.md`.
+
+- **The link is a constant**, never a URL from the response, so a tampered release cannot send
+  the user elsewhere.
+- **`User-Agent` is `magicbar/<version>`**, replacing the default, which reports the macOS and
+  Darwin versions.
+- **GitHub answers 404 while every release is a prerelease.** That means "nothing newer", not a
+  failure. Observed 2026-09-12 with `v1.2.0-rc.1` as the only release.
+- **A failed check leaves an earlier notice in place.** Offline is not news.
+- **Only a manual check reports a status** — "Up to date" or "Couldn't connect", cleared after
+  10 seconds. A daily "Up to date" nobody asked for is noise.
+- **`isNewer` is a pure function**, semantic-version ordered with a prerelease below its
+  release, so `--check-updates` can print its answers.
+- **Local builds read their version from `MARKETING_VERSION`** in the project; CI overrides it
+  from the tag. A stale project value makes a local build announce an update to itself.
+
+---
+
 ## Testing
 
 There is no test target. The app is verified by driving it from a terminal, which is the same
@@ -374,6 +399,19 @@ image was confirmed to be genuinely coloured rather than a grey blob.
 colour and template state but not the Retina behaviour, which only happens when the image is
 actually displayed.
 
+`--check-updates` prints the version comparisons and makes one real request;
+`--simulate-update 1.3.0` shows the footer notice without one. The full argument list is in
+`docs/DEVELOPMENT.md`.
+
+**Developer mode shows the last refresh time** (2026-09-12). `lastRefreshed` is deliberately
+not `@Published`: it changes every 5 seconds, and publishing it would recompose the menu bar
+image on every tick — the cost the `fresh != devices` check in `refresh()` exists to avoid. The
+popover re-reads it through a one-second `TimelineView`, only while open.
+
+**The diagnostics are not isolated from real data** (found 2026-09-12). They construct a real
+`BatteryStore` on `UserDefaults.standard`, so `--dump-retention` wrote simulated series into the
+real `drainHistory` and dropped a real device's series. Open in `TODO.md`.
+
 ---
 
 ## Known gaps
@@ -385,5 +423,9 @@ actually displayed.
   it. Keying on the serial split one device into two and lost its alert state on plug-in.
 - **No sleep or wake handling.** The registry watcher covers reconnection, which is the usual
   post-wake event, but nothing observes wake directly.
-- **A vanished device disappears from the popover** rather than showing a last-known value with
-  a timestamp.
+- **A vanished healthy device disappears from the popover.** One that vanishes below the warn
+  level stays listed for 30 minutes marked "last seen" (`staleAfter` in `BatteryStore`,
+  confirmed with `--dump-retention` on 2026-09-12).
+- **The evening reminder only runs from its hour until midnight**, and the "already sent today"
+  date is held in memory only. A late hour plus a sleeping Mac skips the day; a relaunch after
+  the hour sends it twice. (2026-09-12)

@@ -12,6 +12,16 @@ Internal session history is in `docs/claude/PROGRESS.md`.
   the daily reminder so it says something the menu bar does not already show. It stays blank
   until it has watched the battery for a few days, which is deliberate: a number guessed from
   two readings would be wrong by a factor of ten and believed anyway.
+- **An update notice.** Once a day magicbar asks GitHub whether a newer version exists, and if
+  one does, the bottom of the popover says "Version … available" and opens the download page.
+  It never downloads or installs anything itself. This is the app's only network access, and
+  unticking "Check for updates" turns it off. **Check now** beside it looks straight away,
+  even with the automatic check off, and says "Up to date" or "Couldn't connect".
+- **The version number** at the bottom of the popover.
+
+### Changed
+- **"Updates live" is now "Battery levels refresh automatically"**, moved under the device
+  list. In the footer it read like a claim about software updates.
 
 ### Removed
 - **The sleep reminder.** A warning cannot be delivered as the Mac goes to sleep — the screen

@@ -6,12 +6,13 @@ struct MagicbarApp: App {
     /// Held by the `App`, not created inside a view. A store constructed in a view leaves
     /// the menu bar label observing a different object and it never updates again.
     @StateObject private var store = BatteryStore()
+    @StateObject private var updates = UpdateChecker()
 
     @NSApplicationDelegateAdaptor(MagicbarAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         MenuBarExtra {
-            PopoverView(store: store)
+            PopoverView(store: store, updates: updates)
         } label: {
             // The label re-renders whenever the observed store publishes, which is what
             // drives the idle/alert switch.
@@ -136,6 +137,28 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             print(store.describeDrain())
             UserDefaults.standard.synchronize()
             exit(0)
+        }
+
+        // The update check runs once a day behind a network request, so neither the version
+        // comparison nor GitHub's answer could otherwise be seen. Makes the one real request.
+        if arguments.contains("--check-updates") {
+            Task {
+                let current = UpdateChecker.currentVersion
+                print("current version: \(current)")
+                for (candidate, base) in [("1.2.0", "1.2.0-rc.1"), ("1.10.0", "1.9.2"),
+                                          ("1.2.0", "1.2.0"), ("1.2.0-rc.1", "1.2.0")] {
+                    print("  \(candidate) newer than \(base)? \(UpdateChecker.isNewer(candidate, than: base))")
+                }
+                do {
+                    let latest = try await UpdateChecker.fetchLatestVersion()
+                    print("latest release: \(latest ?? "none published")")
+                    print("update available: \(latest.map { UpdateChecker.isNewer($0, than: current) } ?? false)")
+                } catch {
+                    print("check failed: \(error.localizedDescription)")
+                }
+                exit(0)
+            }
+            return
         }
 
         if arguments.contains("--dump-devices") {

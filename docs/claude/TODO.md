@@ -39,21 +39,26 @@ Security. The release notes carry that instruction; do not quietly drop it.
 - The predecessor ad-hoc scripts are still on disk in `~/bin` and `~/SwiftBar` with their
   launch agent unloaded but its plist still present, so they return at next login. See
   `MIGRATION.md`.
+- Keep `MARKETING_VERSION` in the project in step with the next tag (1.2.0 since 2026-09-12).
+  Local builds read their version from it, and a stale value makes the update check announce
+  the app to itself.
 
 ---
 
 ## NEXT SESSION
 
-- [ ] **Promote `v1.2.0-rc.1` to `v1.2.0`** once the daily reminder has fired at least once and
-      the drain estimate has produced a real number. The pipeline itself is proven: the rc was
-      published 2026-09-10, downloaded, and verified — checksum matches, signature survives the
-      round trip, version reads from the tag, no `get-task-allow`, and the binary runs. What is
-      not proven is the app inside it, which is the only reason this is still a candidate.
-- [ ] **Confirm the daily reminder fires, and carries the estimate.** Set the hour to the next
-      one with a device below the warn level. It has never run. The estimate will read as
-      absent until the history is a few days old, which is expected, not a fault.
-- [ ] **Retire the predecessor scripts** per `MIGRATION.md`, once a reboot confirms magicbar
-      starts itself.
+- [ ] **Confirm the daily reminder fires, and carries the estimate.** It has never fired: three
+      days of logs to 2026-09-12 hold no `evening reminder` line, although the hour was 23 and
+      the mouse sat below its warn level. The check only runs from the chosen hour until
+      midnight, so at 23 a Mac asleep for that one hour skips the day. Set the hour to the next
+      one and watch `log show --last 2h --predicate 'eventMessage CONTAINS "evening reminder"'`.
+- [ ] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
+      `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
+      Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
+      `UserDefaults.standard`. Fix before `v1.2.0`: `docs/DEVELOPMENT.md` presents them as safe.
+- [ ] **Promote `v1.2.0-rc.1` to `v1.2.0`** once both items above are done. The pipeline is
+      proven — published 2026-09-10, downloaded, checksum and signature verified, version read
+      from the tag. The drain estimate gate is met: real numbers since 2026-09-12.
 
 ## Active
 
@@ -73,6 +78,9 @@ Security. The release notes carry that instruction; do not quietly drop it.
 - [ ] **Watch the drain estimate against reality.** Shipped 2026-09-09 and verified only
       against synthetic series. In a week, compare what `--dump-estimate` says to what actually
       happened. *Next action:* re-read it around 2026-09-16.
+      *2026-09-12:* it said "about 8 days" for the mouse at 0.156 %/h, while the mouse fell
+      35% → 30% over the preceding 16 hours — roughly 4 days' pace. The whole-window fit may lag
+      a drain that is speeding up.
 - [ ] **Snooze on the notification.** Raised by all four, but partly answered: unticking the 1%
       rule is now a standing "stop nagging me". A per-occasion snooze is still missing.
       *Next action:* decide whether the standing setting is enough.
@@ -81,29 +89,44 @@ Security. The release notes carry that instruction; do not quietly drop it.
       removed on 2026-09-09 — nothing can be delivered as the Mac sleeps, and wake is when a
       Magic Mouse cannot be charged. That puts more weight on the daily hour being right.
       *Next action:* pick an hour that is actually before the user stops for the night.
+- [ ] **The evening reminder's "already sent today" is not persisted** (`lastEveningReminder`,
+      `BatteryStore.swift`). Relaunching after the hour sends that day's reminder again.
+      *Next action:* store it in `UserDefaults`, or accept it as harmless.
+- [ ] **Retire the predecessor scripts** per `MIGRATION.md`, once a reboot confirms magicbar
+      starts itself. Blocked on that reboot: the Mac last booted 2026-08-24, before magicbar
+      existed. `com.dominic.mousebattery.plist` is still in `~/Library/LaunchAgents`.
+
+### Launch
+
+- [ ] **Post to Reddit after `v1.2.0`.** Plan and drafts are in `docs/launch/REDDIT.md` —
+      gitignored, this machine only. r/macapps first, r/swift days later with a technical angle,
+      r/MacOS only if its rules allow. No subreddit rule has been read at the source: Reddit
+      refuses logged-out requests.
+      *Next action:* capture the orange and red menu bar screenshots, then read each sidebar
+      while logged in.
 
 ## Previously active
 
 ### Bugs
 
-Nothing known.
+The diagnostics writing to real app data — see NEXT SESSION.
 
 ### Features
 
-- [ ] **Keep a vanished device visible** with its last known level and a timestamp, rather than
-      dropping it from the popover. A sleeping mouse currently looks like a missing one.
-      *Next action:* decide how stale is too stale to show.
+- [ ] **Keep a vanished device visible.** Done for low devices: one that vanishes below the warn
+      level stays listed for 30 minutes marked "last seen" (confirmed with `--dump-retention`,
+      2026-09-12). A healthy device still simply disappears.
+      *Next action:* decide whether a healthy device should stay listed too.
 
 ### Docs & hygiene
 
-- [ ] **The README still cannot show a low battery.** Fixed in part on 2026-09-10: the app icon
-      sits under the title and a current popover shot is embedded under "What it does"
-      (`docs/screenshots/popover.png`, Affinity source beside it). The idle glyph is visible in
-      that shot's menu bar corner. What is still missing is the state the whole app exists for —
-      the orange and red menu bar label with a level bar — which cannot be captured without a
-      device actually being low, or `--simulate`.
-      *Next action:* capture the warn and urgent labels with
-      `open /Applications/magicbar.app --args --simulate "617:9,620:62"`, and add them beside
+- [ ] **The README still cannot show a low battery, and its popover shot is out of date.**
+      The README was rewritten for non-technical readers on 2026-09-12, with build steps and
+      diagnostics moved to `docs/DEVELOPMENT.md`. `docs/screenshots/popover.png` predates that
+      day's popover changes: fonts 2 pt larger, "Updates live" gone, a "Check for updates" row
+      and a version footer added. The orange and red menu bar labels were never captured.
+      *Next action:* retake the popover shot, then capture the warn and urgent labels with
+      `open /Applications/magicbar.app --args --simulate "617:9,620:62"` and add them beside
       the prose that describes them.
       *Note:* the nine shots in `docs/review-shots/` are evidence for the 2026-09-08 debrief and
       show settings that no longer exist. Leave them; do not reuse them in user-facing docs.
@@ -129,3 +152,7 @@ Nothing known.
   requires a signed app, so login-at-start dies with it.
 - **The label colour sampling only proves 1x.** Retina correctness rests on using the
   scale-aware drawing API, not on a measurement.
+- **Anyone on `v1.2.0-rc.1` will never hear about an update.** That build predates the update
+  check, so the notice reaches only installs from the next release on.
+- **The Magic Keyboard's drain history restarted on 2026-09-12**, lost to the diagnostics bug.
+  Its estimate stays blank until three samples span six hours — expected, not a fault.

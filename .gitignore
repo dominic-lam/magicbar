@@ -19,6 +19,9 @@ Icon?
 # Machine-specific migration notes (decommissioning the ad-hoc install)
 MIGRATION.md
 
+# Launch drafts — Reddit posts and the like, not for the public repo
+docs/launch/
+
 # Xcode
 xcuserdata/
 *.xcuserstate

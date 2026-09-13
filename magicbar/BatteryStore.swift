@@ -149,6 +149,12 @@ final class BatteryStore: ObservableObject {
     /// tick after the hour passes.
     private var lastEveningReminder: Date?
 
+    /// When the registry was last read, shown in developer mode. Deliberately not `@Published`:
+    /// it changes on every tick, and publishing would recompose the menu bar image each time —
+    /// the cost the `fresh != devices` check in `refresh()` exists to avoid. The popover polls
+    /// it with a `TimelineView` instead, and only while it is open.
+    private(set) var lastRefreshed: Date?
+
     private var firedLaunchTest = false
     private var timer: Timer?
     private let watcher = RegistryWatcher()
@@ -309,6 +315,7 @@ final class BatteryStore: ObservableObject {
 
     func refresh() {
         var fresh = BatteryReader.read()
+        lastRefreshed = .now
 
         // Remember what is present, then re-add anything that has gone missing recently.
         let now = Date.now

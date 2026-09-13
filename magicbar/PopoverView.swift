@@ -5,14 +5,18 @@ import SwiftUI
 /// Lists every discovered device regardless of level, which is the point of the idle state:
 /// the menu bar says only "monitoring", and this is where the actual numbers live.
 ///
-/// **One text size throughout, except the footer.** Every row uses `rowFont`; hierarchy comes
-/// from weight and colour rather than from size. Mixed sizes made the panel read as several
-/// unrelated widgets stacked together.
+/// **One text size throughout, except the two status lines.** Every row uses `rowFont`;
+/// hierarchy comes from weight and colour rather than from size. Mixed sizes made the panel
+/// read as several unrelated widgets stacked together.
 struct PopoverView: View {
     @ObservedObject var store: BatteryStore
+    @ObservedObject var updates: UpdateChecker
 
     /// The single size every row shares. Changing it here changes the whole panel.
-    static let rowFont: Font = .callout
+    /// Fixed sizes rather than text styles: 14 has no named style on macOS (`.callout` is 12).
+    static let rowFont: Font = .system(size: 14)
+    /// The two status lines and the slider labels — two points under `rowFont`.
+    static let footnoteFont: Font = .system(size: 12)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -40,10 +44,27 @@ struct PopoverView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(store.devices) { device in
-                        DeviceRow(device: device, color: store.color(for: device.percent),
-                                  estimate: store.estimate(for: device))
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(store.devices) { device in
+                            DeviceRow(device: device, color: store.color(for: device.percent),
+                                      estimate: store.estimate(for: device))
+                        }
+                    }
+                    // Sits under the readings it describes. In the footer, "Updates live"
+                    // read as a claim about software updates.
+                    Text("Battery levels refresh automatically")
+                        .font(PopoverView.footnoteFont)
+                        .foregroundStyle(.secondary)
+                    if store.developerMode {
+                        // `lastRefreshed` is not published, so re-read it every second while
+                        // the popover is open rather than on every store change.
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in
+                            Text("Last refreshed \(store.lastRefreshed.map { $0.formatted(date: .omitted, time: .standard) } ?? "never")")
+                                .font(PopoverView.footnoteFont)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
                     }
                 }
             }
@@ -65,23 +86,50 @@ struct PopoverView: View {
             .font(Self.rowFont)
             .toggleStyle(.checkbox)
 
-            // The one row deliberately smaller: it is status and an escape hatch, not
-            // something to read.
-            HStack {
-                Text("Updates live")
-                    .font(.footnote)
+            HStack(spacing: 8) {
+                Toggle("Check for updates", isOn: $updates.isEnabled)
+                    .font(Self.rowFont)
+                    .toggleStyle(.checkbox)
+                    .help("Asks GitHub once a day whether a newer version exists. Nothing is downloaded or installed.")
+                Spacer()
+                if let status = updates.status {
+                    Text(status)
+                        .font(Self.footnoteFont)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                // Works with the checkbox off: a click is an explicit request.
+                Button("Check now") { Task { await updates.check(manual: true) } }
+                    .font(Self.rowFont)
+                    .disabled(updates.isChecking)
+            }
+
+            // Deliberately smaller: it is status and an escape hatch, not something to read.
+            HStack(spacing: 4) {
+                Text("magicbar \(UpdateChecker.currentVersion)")
+                    .font(PopoverView.footnoteFont)
                     .foregroundStyle(.secondary)
+                if let version = updates.available {
+                    Text("·")
+                        .font(PopoverView.footnoteFont)
+                        .foregroundStyle(.secondary)
+                    Button("Version \(version) available") {
+                        NSWorkspace.shared.open(UpdateChecker.downloadURL)
+                    }
+                    .buttonStyle(.link)
+                    .font(PopoverView.footnoteFont)
+                }
                 Spacer()
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .buttonStyle(.plain)
-                    .font(.footnote)
+                    .font(PopoverView.footnoteFont)
                     .foregroundStyle(.secondary)
             }
         }
         .padding(16)
         // A `.window`-style MenuBarExtra does not size itself to anything sensible, so the
         // width is fixed here and the height left free.
-        .frame(width: 340)
+        .frame(width: 396)
         // Permission is re-read here rather than on the poll timer: it can only change while
         // the user is away in System Settings, and checking it is an XPC round trip.
         .onAppear { store.refreshAuthorizationNow() }
@@ -137,7 +185,7 @@ private struct DeviceRow: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(color)
                     .monospacedDigit()
-                    .frame(width: 44, alignment: .trailing)
+                    .frame(width: 52, alignment: .trailing)
             }
 
             // Absent until the series is long enough to mean something, which is days after a
@@ -204,7 +252,7 @@ private struct LevelKey: View {
         HStack(spacing: 5) {
             RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
             Text("\(name) below \(value)%")
-                .font(.footnote)
+                .font(PopoverView.footnoteFont)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
         }
@@ -313,7 +361,7 @@ private struct CadenceRow: View {
             .pickerStyle(.menu)
             .font(PopoverView.rowFont)
             .disabled(!enabled)
-            .frame(width: 108)
+            .frame(width: 126)
         }
     }
 }

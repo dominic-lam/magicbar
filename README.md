@@ -2,128 +2,128 @@
 
 <img src="magicbar/Assets.xcassets/AppIcon.appiconset/icon_256.png" alt="magicbar app icon: a mouse outline filled like a battery" width="128">
 
-> Because macOS won't tell you your Magic Mouse is dying until it already has.
+**A free app that warns you before your Magic Mouse or Magic Keyboard runs out of battery.**
 
-A macOS menu bar app that watches the battery in every Apple peripheral you own and gets
-progressively louder as one runs down.
+macOS does warn you — but only at 6%, when it is already too late to plan around. That hurts
+most with a Magic Mouse: it charges through a port on the bottom, so you cannot use it while it
+charges.
 
-## What it does
+magicbar lives in your menu bar and speaks up earlier, while you can still pick a good moment
+to plug in.
 
-**Everything healthy** — one small mouse glyph in the menu bar. It carries no reading and no
-colour. Its only job is to tell you the app is alive. Click it to see every device's level.
-
-**A device drops below 20%** — the menu bar item becomes *that device's* icon, a level bar and
-its percentage, in orange. Below 10% it turns red. If both devices are low, the lower one is
-shown and the other stays one click away.
-
-**A device drops below 10%** — every further percent lost produces a notification. That is
-deliberate nagging: at that point you want to be bothered.
-
-Both thresholds are adjustable from the popover. Click the menu bar item to open it:
+## What you'll see
 
 <p align="center">
-  <img src="docs/screenshots/popover.png" alt="The magicbar popover: a Magic Mouse at 42% and a Magic Keyboard at 60% as green level bars, a two-handle slider setting the urgent and warn levels, notification cadence rules, a daily reminder time, and an open-at-login toggle" width="360">
+  <img src="docs/screenshots/popover.png" alt="The magicbar window: a Magic Mouse at 42% and a Magic Keyboard at 60% as green battery bars, a slider for the warning levels, notification options, a daily reminder time, and an open-at-login switch" width="360">
 </p>
+
+**When everything is fine** — a small mouse icon in your menu bar, and nothing else. Click it
+to see the battery level of every device.
+
+**When a battery gets low (below 20%)** — the icon changes to show *that* device, with a
+battery bar and its percentage, in **orange**. You get a notification every time it drops
+another 5%.
+
+**When it is really low (below 10%)** — the icon turns **red**, and you get a notification for
+every 1% it drops. That is on purpose: at this point you want to be bothered.
+
+**Once a day** — an optional reminder at a time you choose (6 pm unless you change it), if
+something needs charging.
+
+If two devices are low at once, the menu bar shows the lower one. While something is charging
+and nothing else is low, the menu bar shows it filling up.
+
+It works with Apple mice and keyboards automatically — there is nothing to set up. It has been
+tested with a Magic Mouse and a Magic Keyboard. A Magic Trackpad should work too, but nobody has
+tried one yet.
 
 ## Install
 
-### Download it
+You need a Mac running **macOS 14 Sonoma or later**.
 
-Grab `magicbar.zip` from [Releases](https://github.com/dominic-lam/magicbar/releases), unzip,
-drag **magicbar.app** to **Applications**, and open it.
+1. Download **magicbar.zip** from the [Releases page](https://github.com/dominic-lam/magicbar/releases).
+2. Open the zip file, then drag **magicbar** into your **Applications** folder.
+3. Open magicbar. macOS will say it cannot be opened. **This is expected** — see below.
+4. Open **System Settings › Privacy & Security**, scroll to the bottom, and click
+   **Open Anyway** next to magicbar. Confirm when asked.
+5. When magicbar asks to send notifications, click **Allow**.
 
-macOS will refuse the first time. Go to **System Settings › Privacy & Security**, scroll to
-the bottom, and click **Open Anyway**.
+That's it. magicbar starts by itself every time you log in, and you never repeat steps 3 and 4.
 
-That step is unavoidable and it is not a bug. Getting rid of it means notarising the app,
-notarising needs a paid Apple Developer account, and this is a free side project with no
-income to pay for one. The app is signed — just not by anyone Apple has been paid to
-recognise.
+### Updating
 
-### Or build it
+When a new version is out, the bottom of magicbar's window says **Version … available**. Click
+it to open the download page, then repeat steps 1 and 2, replacing the old copy. If macOS blocks
+the new version, repeat step 4 as well.
 
-```
-git clone git@github.com:dominic-lam/magicbar.git
-cd magicbar
-xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
-  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build
-cp -R "$(xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
-  -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $2; exit}')/magicbar.app" /Applications/
-open /Applications/magicbar.app
-```
+### Why macOS blocks it the first time
 
-A locally built copy is never quarantined, so it skips the Privacy & Security step entirely.
+Apple only waves an app straight through if its developer pays for a yearly Apple Developer
+membership. magicbar is a free side project with no income, so it doesn't have one. The app is
+not broken and not dangerous — macOS simply hasn't been told who made it. All of its code is
+public on this page for anyone to read.
 
-`CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` is not optional. Without it the build carries
-`com.apple.security.get-task-allow`, which marks the app debuggable, and macOS will not grant
-a debuggable app permission to post notifications.
+## Changing the settings
 
-Install to `/Applications` rather than running from the build directory. The app registers
-itself as a login item on first launch, and that registration binds to wherever it was
-launched from — a build directory gets cleaned and leaves a dangling entry.
+Click the menu bar icon to open magicbar. From there you can:
 
-### One manual step: notifications
+- **Move the two warning levels** with the slider — orange ("warn") and red ("urgent").
+- **Choose when the battery shows in the menu bar** — only below the orange level, only below
+  the red level, or always.
+- **Choose which notifications you get** — every 5%, every 1%, the daily reminder, and the sound.
+- **Turn on high contrast alerts** if the orange and red are hard to tell apart.
+- **Click "Check now"** to look for a new version straight away.
+- **Turn off "Open at login" or "Check for updates"**, or quit the app.
 
-Open **System Settings › Notifications › magicbar** and switch **Allow Notifications** on.
-Set the alert style to **Alerts** rather than **Banners** if you want the warning to stay on
-screen instead of vanishing after a few seconds. Neither can be set programmatically.
+Changes apply straight away.
 
-## Requirements
+## Privacy
 
-macOS 14 or later. Xcode only if you build it yourself. No Homebrew packages, no SwiftBar,
-no `terminal-notifier`, no launchd job, no third-party dependencies of any kind.
+No account, no analytics, no tracking. magicbar reads your devices' battery levels, and the
+only thing it ever does online is check for updates.
 
-## How it works
+Once a day, it asks GitHub whether a newer version exists. Nothing about you or your devices is
+sent — GitHub only sees that a request came in, as any website would. Nothing is ever
+downloaded or installed on its own. Untick **Check for updates** and magicbar never goes online
+at all.
 
-```
-IORegistry (AppleDeviceManagementHIDEventService)
-        │  every service with HasBattery + BatteryPercent
-        ▼
-  BatteryReader ──▶ [Device]
-        │
-   BatteryStore     60s timer, thresholds, low-water marks
-     │       │
-     ▼       ▼
- MenuBarRenderer   Notifier
-  (NSImage)        (UNUserNotificationCenter)
-```
+## Something not working?
 
-Devices are **discovered**, not configured. Anything that publishes a battery level is picked
-up automatically and named from the registry, so there is no list of product IDs to maintain
-and adding a Magic Trackpad would require no code.
+**No notifications**
+Open **System Settings › Notifications › magicbar** and turn on **Allow Notifications**. If
+magicbar's window shows an orange box saying notifications are blocked, its button takes you
+straight there.
+Tip: choose **Alerts** instead of **Banners** if you want the warning to stay on screen until
+you dismiss it.
 
-## Configuration
+**The icon isn't in the menu bar**
+Open magicbar again from your Applications folder. If it still doesn't appear, your menu bar is
+probably full — on a MacBook, icons that don't fit beside the camera notch are hidden without
+warning. Quitting another menu bar app makes room.
 
-Both thresholds live in the popover and persist in `UserDefaults`. There is no config file.
+**A device is missing**
+magicbar can only read a device while it is connected. A mouse or keyboard that is switched off
+or has gone to sleep drops out of the list until it reconnects — click the mouse or press a key.
+If its battery was already low, magicbar keeps showing its last reading, marked "last seen", so
+a low device can't quietly vanish.
 
-## Troubleshooting
+**It doesn't start when I log in**
+Open magicbar, turn **Open at login** off and on again. You can also check
+**System Settings › General › Login Items**.
 
-**No notifications** — check System Settings as above, then
-`log show --last 10m --predicate 'eventMessage CONTAINS "[magicbar]"'`. The app logs its
-authorization status at every launch, which is the only way to see that state.
+**Still stuck?** [Open an issue](https://github.com/dominic-lam/magicbar/issues) and describe
+what you see.
 
-**Menu bar item missing** — `pgrep -f "MacOS/magicbar"`. If it is running, the item exists but
-your menu bar may be full; macOS hides overflow silently.
+## Uninstall
 
-**Wrong or missing device** — `/Applications/magicbar.app/Contents/MacOS/magicbar --dump-devices`
-prints what the app can see, as name, percent, product ID and serial.
+Click the menu bar icon, click **Quit**, then drag **magicbar** from Applications to the Trash.
+If it is still listed under **System Settings › General › Login Items**, remove it there.
 
-**Not starting at login** — the app logs its login item status at launch. Untick and retick
-"Open at login" in the popover, or check System Settings › General › Login Items.
+## For developers
 
-## Diagnostics
-
-The app is developed from a terminal, so anything worth knowing logs itself under `[magicbar]`.
-
-| Argument | Effect |
-|---|---|
-| `--dump-devices` | print every discovered device and exit |
-| `--dump-label` | print the rendered menu bar image's size, template flag and colour sampling |
-| `--simulate "617:9,620:62"` | use injected readings instead of real hardware |
-
-`--simulate` takes product IDs or names. It is how every menu bar state and notification rule
-gets tested without waiting for a real battery to drain.
+Building from source, diagnostics and how the app reads battery levels are in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## License
 
-[MIT](LICENSE) — Dominic Lam, 2026.
+Free and open source under the [MIT license](LICENSE) — Dominic Lam, 2026.

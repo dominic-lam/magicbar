@@ -14,13 +14,22 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 | Feature | Status | Next step |
 |---|---|---|
 | Charge-complete alert | Idea | Needs a charged state, which needs the flag pinned |
-| Keep a sleeping device visible | Committed | Decide the staleness cutoff |
+| Keep a sleeping device visible | Committed | Low devices done; decide whether healthy ones stay too |
 | Both devices in the menu bar at once | Idea | Decide how wide is too wide |
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
+| Homebrew tap | Idea | Decide whether one extra repo is worth it |
 
 ---
 
 ## Shipped
+
+### Update check — 2026-09-12, unreleased
+
+Once a day, and on a "Check now" click, the app asks GitHub for the newest non-prerelease tag.
+A newer one turns the popover footer into "Version … available", linking to the Releases page.
+It never downloads or installs anything. The app's only network access, on by default, one
+checkbox to turn off. The footer also shows the version number, replacing "Updates live", which
+read as a claim about software updates. Detail in `ARCHITECTURE.md`.
 
 ### Drain estimate — 2026-09-09
 
@@ -89,9 +98,10 @@ under deuteranopia.
 
 ### Keep a sleeping device visible
 
-A disconnected peripheral vanishes from the registry, so it vanishes from the popover, which
-looks like a bug rather than a sleeping mouse. Show the last known level with a timestamp
-instead. Needs a staleness cutoff decision.
+A disconnected peripheral vanishes from the registry. A device that vanishes below the warn
+level already stays listed for 30 minutes marked "last seen" (confirmed 2026-09-12); a healthy
+one still disappears, which looks like a bug rather than a sleeping mouse. Open: whether
+healthy devices should stay too.
 
 ---
 
@@ -112,6 +122,14 @@ unverified.
 After a long sleep the first reading is up to a poll interval late. An `NSWorkspace`
 wake observer would make it immediate.
 
+### Homebrew tap
+
+A personal tap (`dominic-lam/homebrew-tap`) would give `brew install dominic-lam/tap/magicbar`
+and updates through `brew upgrade`, with the release workflow bumping the cask on each tag. It
+would not remove the Gatekeeper step. The official `homebrew-cask` is closed to this app twice
+over: casks failing Gatekeeper lose support from 2026-09-01, and a self-submitted cask needs
+225 stars, 90 forks and 90 watchers (checked 2026-09-12 against Homebrew's docs).
+
 ---
 
 ## Blocked
@@ -119,6 +137,14 @@ wake observer would make it immediate.
 Nothing.
 
 ## Declined
+
+### Updates that install themselves — declined 2026-09-12
+
+Chosen instead: a notice that links to the Releases page. A self-written download-and-replace
+would hand every installed copy to whoever controls the GitHub account. Sparkle guards against
+that with a separate signing key, but it is a third-party dependency and needs that key in CI.
+Release builds are also ad-hoc signed, so each version may look like a new app to macOS —
+unverified.
 
 ### Configuration file
 
