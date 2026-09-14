@@ -5,7 +5,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Internal session history is in `docs/claude/PROGRESS.md`.
 
-## [Unreleased]
+## [1.2.0] — 2026-09-13
 
 ### Added
 - **A drain estimate** — "about three days left" under each device in the popover, and inside

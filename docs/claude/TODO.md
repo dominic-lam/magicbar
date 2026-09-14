@@ -56,9 +56,10 @@ Security. The release notes carry that instruction; do not quietly drop it.
       `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
       Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
       `UserDefaults.standard`. Fix before `v1.2.0`: `docs/DEVELOPMENT.md` presents them as safe.
-- [ ] **Promote `v1.2.0-rc.1` to `v1.2.0`** once both items above are done. The pipeline is
-      proven — published 2026-09-10, downloaded, checksum and signature verified, version read
-      from the tag. The drain estimate gate is met: real numbers since 2026-09-12.
+- [ ] **Verify the published `v1.2.0` download.** Released 2026-09-13 at the user's call, ahead
+      of both items above: the daily reminder had never fired and the diagnostics bug was open.
+      Download the zip, check the checksum, open it past Gatekeeper, and confirm the footer
+      reads `magicbar 1.2.0` with no update notice.
 
 ## Active
 
