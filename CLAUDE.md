@@ -99,6 +99,7 @@ xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
 REL="$(xcodebuild -project magicbar.xcodeproj -scheme magicbar -configuration Release \
   -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $2; exit}')/magicbar.app"
 
+[ -d "$REL" ] || { echo "no build at $REL"; exit 1; }   # an empty REL deletes the app and copies nothing
 pkill -f "MacOS/magicbar( |$)"
 rm -rf /Applications/magicbar.app && cp -R "$REL" /Applications/magicbar.app
 open /Applications/magicbar.app
@@ -110,6 +111,12 @@ Both shell forms above are corrections inherited from Range and both cost real d
 `pkill -f "MacOS/magicbar$"` matches nothing once the app has launch arguments, because `$`
 anchors against the whole command line; and globbing `DerivedData/magicbar-*` can resolve to
 another checkout's build, so ask `xcodebuild` for `BUILT_PRODUCTS_DIR` instead.
+
+**Check `REL` before deleting anything.** On 2026-09-13 `-showBuildSettings` hung for ten
+minutes after a successful build. Interrupting it left `REL` as `/magicbar.app`, and the install
+line deleted `/Applications/magicbar.app` and copied nothing in its place. If the lookup hangs,
+find this checkout's build by matching `WorkspacePath` in each
+`DerivedData/magicbar-*/info.plist`, never by globbing.
 
 **Never pass `-derivedDataPath` pointing inside this repo.** It lives under an iCloud-synced
 `Documents` tree, and iCloud stamps Finder attributes on build output that make `codesign` fail

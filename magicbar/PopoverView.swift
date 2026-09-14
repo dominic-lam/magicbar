@@ -120,6 +120,13 @@ struct PopoverView: View {
                     .font(PopoverView.footnoteFont)
                 }
                 Spacer()
+                Button("GitHub") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/dominic-lam/magicbar")!)
+                }
+                .buttonStyle(.plain)
+                .font(PopoverView.footnoteFont)
+                .foregroundStyle(.secondary)
+                .help("github.com/dominic-lam/magicbar")
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .buttonStyle(.plain)
                     .font(PopoverView.footnoteFont)

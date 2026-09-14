@@ -17,7 +17,7 @@ Internal session history is in `docs/claude/PROGRESS.md`.
   It never downloads or installs anything itself. This is the app's only network access, and
   unticking "Check for updates" turns it off. **Check now** beside it looks straight away,
   even with the automatic check off, and says "Up to date" or "Couldn't connect".
-- **The version number** at the bottom of the popover.
+- **The version number** at the bottom of the popover, and a **GitHub** link beside Quit.
 
 ### Changed
 - **"Updates live" is now "Battery levels refresh automatically"**, moved under the device
