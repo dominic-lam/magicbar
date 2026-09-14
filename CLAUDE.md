@@ -192,7 +192,7 @@ PopoverView.swift      device rows, threshold steppers, login toggle, Quit
 
 ---
 
-## Current State (2026-09-12)
+## Current State (2026-09-13)
 
 Built, installed at `/Applications/magicbar.app`, running, registered as a login item, and
 allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen of their 37
@@ -201,7 +201,7 @@ findings are closed, and the rest are triaged in
 
 **Distribution works.** Open source only — no App Store, no paid Apple Developer account.
 Both GitHub Actions workflows (build-on-push, ad-hoc-signed release on a `v*` tag) ran green on
-GitHub on 2026-09-10, and `v1.2.0-rc.1` is published and verified by download.
+GitHub on 2026-09-10. `v1.2.0` was released 2026-09-13 and verified by download.
 
 **One network call.** Since 2026-09-12 `UpdateChecker` asks GitHub for the latest release at
 launch, daily, and on "Check now". It never downloads or installs; installing was declined (see
@@ -217,5 +217,7 @@ delivering it at wake instead lands on the one moment a Magic Mouse cannot be ch
 daily reminder at a chosen hour is now the only reminder tied to a moment, and it is
 **unverified** — wired, never fired.
 
-**Unverified:** the drain estimate ("about three days left"), shipped 2026-09-09 and checked
-only against synthetic data — see `docs/claude/ARCHITECTURE.md`.
+**The drain estimate was reworked 2026-09-13.** The rate survives a charge, quiet time counts,
+and nothing shows under 24 hours of history. `--check-estimate` covers it with synthetic cases
+and touches no saved data; it has not yet been seen through a real charge. See
+`docs/claude/ARCHITECTURE.md`.

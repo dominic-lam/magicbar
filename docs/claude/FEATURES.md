@@ -18,12 +18,13 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 | Both devices in the menu bar at once | Idea | Decide how wide is too wide |
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
 | Homebrew tap | Idea | Decide whether one extra repo is worth it |
+| Battery wear from the drain-rate trend | Idea | Needs months of kept rates first |
 
 ---
 
 ## Shipped
 
-### Update check — 2026-09-12, unreleased
+### Update check — v1.2.0
 
 Once a day, and on a "Check now" click, the app asks GitHub for the newest non-prerelease tag.
 A newer one turns the popover footer into "Version … available", linking to the Releases page.
@@ -130,6 +131,19 @@ and updates through `brew upgrade`, with the release workflow bumping the cask o
 would not remove the Gatekeeper step. The official `homebrew-cask` is closed to this app twice
 over: casks failing Gatekeeper lose support from 2026-09-01, and a self-submitted cask needs
 225 stars, 90 forks and 90 watchers (checked 2026-09-12 against Homebrew's docs).
+
+### Battery wear from the drain-rate trend
+
+*Recorded 2026-09-14.* macOS exposes no health reading for these peripherals — no cycle count,
+no maximum capacity. Their registry entries carry only `BatteryPercent` and
+`BatteryStatusFlags`; the `CycleCount` and `MaxCapacity` found in the registry belong to the
+Mac's own `AppleSmartBattery`, which reads `BatteryInstalled = No` on this desktop. Wear would
+have to be inferred: habits are steady, so if the fitted percent-per-day creeps up over months,
+the battery holds less. Two obstacles before it is worth building: the history keeps only 200
+samples and forgets a device after 30 silent days, so months of rates are not retained; and a
+change of habit looks exactly like wear, with whole-percent readings hiding a 10–20% drift for a
+long time. A second weak signal is charge speed — a worn battery fills its smaller capacity
+faster — but charger, cable and use during charging move it as much.
 
 ---
 

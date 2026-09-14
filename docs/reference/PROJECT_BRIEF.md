@@ -10,7 +10,7 @@ a silent glyph to a coloured level bar to a notification per lost percent.
 
 ## Current status
 
-**v1.2.0 candidate, built and running.** Installed at `/Applications/magicbar.app`, registered
+**v1.2.0, released 2026-09-13, built and running.** Installed at `/Applications/magicbar.app`, registered
 as a login item, allowed to notify. Swift and SwiftUI, one target, no packages, no background
 job. One network call since 2026-09-12: an optional daily GitHub update check that never
 installs anything.
@@ -21,12 +21,13 @@ triaged in `docs/claude/debriefs/2026-09-08-design-review.md`.
 **The sleep reminder was removed 2026-09-09** — it could not be delivered while the Mac is
 sleeping, measured twice (see `ARCHITECTURE.md`). The daily reminder now carries a drain
 estimate ("about three days left") instead. **The daily reminder is unverified** — it has never
-fired (logs checked 2026-09-12). The estimate has produced real numbers since 2026-09-12, but
-looks optimistic against the mouse's recent drain.
+fired (logs checked 2026-09-12). The estimate was reworked 2026-09-13 — one rate across every
+run between charges, quiet time counted, a 24-hour floor — and checked by `--check-estimate`,
+but not yet against a real charge.
 
-**Distribution works (2026-09-10).** Open source only, no paid developer account. GitHub
-Actions build the app on every push and publish an ad-hoc-signed zip on a `v*` tag; both ran
-green on GitHub, and `v1.2.0-rc.1` is published and verified by download.
+**Distribution works.** Open source only, no paid developer account. GitHub Actions build the
+app on every push and publish an ad-hoc-signed zip on a `v*` tag. `v1.2.0` was published
+2026-09-13 and verified by download: checksum, version, signature, no `get-task-allow`.
 
 **The diagnostics write to real app data** (found 2026-09-12) — see `TODO.md` before running
 `--dump-retention`.

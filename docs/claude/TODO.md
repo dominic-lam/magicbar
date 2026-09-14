@@ -55,11 +55,13 @@ Security. The release notes carry that instruction; do not quietly drop it.
 - [ ] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
       `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
       Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
-      `UserDefaults.standard`. Fix before `v1.2.0`: `docs/DEVELOPMENT.md` presents them as safe.
-- [ ] **Verify the published `v1.2.0` download.** Released 2026-09-13 at the user's call, ahead
-      of both items above: the daily reminder had never fired and the diagnostics bug was open.
-      Download the zip, check the checksum, open it past Gatekeeper, and confirm the footer
-      reads `magicbar 1.2.0` with no update notice.
+      `UserDefaults.standard`. `v1.2.0` shipped with this open; `docs/DEVELOPMENT.md` warns about
+      it. Isolate the diagnostics from `UserDefaults.standard`, then drop that warning.
+- [ ] **Open the downloaded `v1.2.0` past Gatekeeper.** Released 2026-09-13 at the user's call,
+      ahead of both items above. Already verified that day: checksum matches, version reads
+      1.2.0, ad-hoc signature valid, no `get-task-allow`, and `--check-updates` reports latest
+      1.2.0 with no update. Still unseen: the Open Anyway step on a downloaded copy, and its
+      footer reading `magicbar 1.2.0`.
 
 ## Active
 

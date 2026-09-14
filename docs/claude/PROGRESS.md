@@ -18,9 +18,13 @@ user-facing release notes in `CHANGELOG.md`.
 |---|---|---|
 | v0.1.0 | 2026-04-21 | bash: SwiftBar plugin, launchd notifier, ioreg read. Never installed. |
 | v1.0.0 | 2026-09-08 | Swift menu bar app. Bash deleted, dependencies dropped. |
+| v1.2.0 | 2026-09-13 | First public release via CI: update check, drain estimate, plain-language README. |
 
 ## Milestones & Key Sessions
 
+- **2026-09-13 — v1.2.0 released.** The first finished build on GitHub Releases, published by
+  the tag workflow and verified by download. Shipped ahead of two gates the project had set: the
+  daily reminder had never fired, and the diagnostics could still write to real data.
 - **2026-04-21 — the repo exists.** Ad-hoc scripts extracted into a project with a shared
   library, tests and an installer. Then untouched for four and a half months.
 - **2026-09-09 — reviewed and reshaped.** Four reviewers found 37 things, nine of them real
@@ -49,6 +53,11 @@ Archive the oldest 10 entries when the Session Log exceeds 15 → `docs/archive/
 Newest first, directly below the marker. Three-line format, one entry per session.
 
 <!-- Append new entries here -->
+
+## 2026-09-13 (Session 6 — an estimate that survives a charge, and 1.2.0 released)
+**Completed:** Added a GitHub link to the popover footer, guarded the documented install command after a hung `-showBuildSettings` left the build path empty and deleted the installed app, reworked the drain estimate so the rate is fitted across every run between charges with quiet time counted and a 24-hour floor (checked by a new `--check-estimate`, and the real saved history confirmed migrated), stopped tracking Affinity source files, released `v1.2.0` — download verified by checksum, signature and version, and the update check confirmed against a real release — and established that no battery-health reading is exposed, recording wear-from-drain-trend as an idea.
+**In progress:** The daily reminder is still unproven, the diagnostics still write to real app data, and the downloaded `v1.2.0` has not been opened past Gatekeeper.
+**Next session should:** Set the daily reminder hour to the next hour and confirm a real `evening reminder` line appears in the log.
 
 ## 2026-09-12 (Session 5 — an update check, a README for non-developers, and a diagnostic that ate real data)
 **Completed:** Added an optional update check — a daily GitHub release query plus a "Check now" button, the app's only network access, which never downloads or installs anything — replaced the misleading "Updates live" footer with the version number and a "Battery levels refresh automatically" line, added a developer-mode refresh timestamp, raised every popover font by 2 pt, rewrote the README for non-technical users with the technical material moved to `docs/DEVELOPMENT.md`, and drafted a gitignored Reddit launch plan; along the way found that the daily reminder has never fired and that `--dump-retention` writes into real app data, which deleted the keyboard's drain history.
