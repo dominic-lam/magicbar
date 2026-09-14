@@ -81,6 +81,8 @@ Security. The release notes carry that instruction; do not quietly drop it.
       *2026-09-12:* it said "about 8 days" for the mouse at 0.156 %/h, while the mouse fell
       35% → 30% over the preceding 16 hours — roughly 4 days' pace. The whole-window fit may lag
       a drain that is speeding up.
+      *2026-09-13:* the rule was reworked — the rate now survives charges, needs 24 hours, and
+      counts quiet time up to now. The 2026-09-16 comparison tests the new rule, not the old.
 - [ ] **Snooze on the notification.** Raised by all four, but partly answered: unticking the 1%
       rule is now a standing "stop nagging me". A per-occasion snooze is still missing.
       *Next action:* decide whether the standing setting is enough.
@@ -154,5 +156,6 @@ The diagnostics writing to real app data — see NEXT SESSION.
   scale-aware drawing API, not on a measurement.
 - **Anyone on `v1.2.0-rc.1` will never hear about an update.** That build predates the update
   check, so the notice reaches only installs from the next release on.
-- **The Magic Keyboard's drain history restarted on 2026-09-12**, lost to the diagnostics bug.
-  Its estimate stays blank until three samples span six hours — expected, not a fault.
+- **The level creeps up a point or two just after a charge** (39 → 40 → 41, 2026-09-13). Those
+  readings stay in the new segment and flatten the fitted rate slightly — optimistic. Worth
+  correcting only if the 2026-09-16 comparison shows the estimate running long.

@@ -358,14 +358,13 @@ final class BatteryStore: ObservableObject {
                 changed = true
             }
         }
-        // A device that is gone for good should not keep its curve forever.
-        for id in drain.series.keys where !present.contains(id) && lastSeen[id] == nil {
-            drain.forget(id: id)
-            changed = true
-        }
+        // Forgotten only after a month of silence. Leaving the registry is not "gone for good":
+        // a keyboard switched off overnight vanishes too, and forgetting on that threw away the
+        // history the rate is built from.
+        if drain.forgetUnseen() { changed = true }
         if changed {
             drain.save()
-            NSLog("%@", "[magicbar] drain history: \(drain.series.mapValues(\.count))")
+            NSLog("%@", "[magicbar] drain history: \(drain.sampleCounts)")
         }
 
         for device in devices where !device.isStale { evaluateNotification(for: device) }
@@ -383,21 +382,24 @@ final class BatteryStore: ObservableObject {
 
     /// The stored series and what it currently implies, for `--dump-estimate`.
     func describeDrain() -> String {
-        guard !drain.series.isEmpty else { return "no samples recorded yet" }
+        guard !drain.segments.isEmpty else { return "no samples recorded yet" }
         var lines: [String] = []
-        for (id, samples) in drain.series.sorted(by: { $0.key < $1.key }) {
-            let name = devices.first(where: { $0.id == id })?.shortName ?? id
-            let span = (samples.last?.at.timeIntervalSince(samples.first?.at ?? .now) ?? 0) / 3600
-            let rate = drain.ratePerHour(id: id)
-            let percent = devices.first(where: { $0.id == id })?.percent ?? samples.last?.percent ?? 0
-            lines.append("\(name) [\(id)]")
-            lines.append("  samples: \(samples.count) over \(String(format: "%.1f", span))h "
-                         + "(needs \(DrainHistory.minimumSamples) over "
-                         + "\(Int(DrainHistory.minimumSpan / 3600))h)")
-            lines.append("  rate:    " + (rate.map { String(format: "%.3f %%/h", $0) } ?? "not enough data"))
-            lines.append("  says:    " + (drain.phrase(id: id, percent: percent) ?? "nothing yet"))
-            for sample in samples.suffix(8) {
-                lines.append("    \(sample.at.formatted(date: .abbreviated, time: .shortened))  \(sample.percent)%")
+        for (id, list) in drain.segments.sorted(by: { $0.key < $1.key }) {
+            // Only a device being read right now gets a "now" point and a phrase.
+            let live = devices.first(where: { $0.id == id && !$0.isStale && !$0.isCharging })
+            let fit = drain.fit(id: id, percent: live?.percent)
+            lines.append("\(devices.first(where: { $0.id == id })?.shortName ?? id) [\(id)]")
+            lines.append("  fit:     \(fit.points) points in \(fit.segments) segment(s) over "
+                         + "\(String(format: "%.1f", fit.span / 3600))h "
+                         + "(needs \(DrainHistory.minimumSamples) over \(Int(DrainHistory.minimumSpan / 3600))h)")
+            lines.append("  rate:    " + (fit.rate.map { String(format: "%.3f %%/h, %.1f %%/day", $0, $0 * 24) }
+                                          ?? "not enough data"))
+            lines.append("  says:    " + (live.flatMap { drain.phrase(id: id, percent: $0.percent) } ?? "nothing yet"))
+            for (index, segment) in list.enumerated() where !segment.isEmpty {
+                lines.append("  segment \(index + 1): \(segment.count) samples")
+                for sample in segment.suffix(6) {
+                    lines.append("    \(sample.at.formatted(date: .abbreviated, time: .shortened))  \(sample.percent)%")
+                }
             }
         }
         return lines.joined(separator: "\n")

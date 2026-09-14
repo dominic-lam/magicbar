@@ -76,6 +76,7 @@ permission. Install to `/Applications`, never run from the build directory, and 
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-cadence "19,14,9,8"
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-retention
 /Applications/magicbar.app/Contents/MacOS/magicbar --dump-estimate     # + the stored drain series and its fit
+/Applications/magicbar.app/Contents/MacOS/magicbar --check-estimate    # synthetic cases, no saved data
 /Applications/magicbar.app/Contents/MacOS/magicbar --check-updates     # one real GitHub request
 open /Applications/magicbar.app --args --simulate-update 1.3.0         # footer notice, no request
 open /Applications/magicbar.app --args --simulate "617:9,620:62"       # "+" suffix = charging

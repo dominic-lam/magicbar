@@ -127,6 +127,13 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
+        // The estimate's rule needs weeks of history and a charge to exercise for real, so this
+        // runs synthetic series through `DrainHistory` alone. No store, no saved data touched.
+        if arguments.contains("--check-estimate") {
+            print(DrainHistory.selfCheck())
+            exit(0)
+        }
+
         // The estimate is the one rule in this app that cannot be checked by looking: it
         // depends on days of accumulated history, so a wrong slope would sit there being
         // plausible. This prints the stored series and the number it implies.

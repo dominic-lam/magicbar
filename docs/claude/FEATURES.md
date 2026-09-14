@@ -31,12 +31,13 @@ It never downloads or installs anything. The app's only network access, on by de
 checkbox to turn off. The footer also shows the version number, replacing "Updates live", which
 read as a claim about software updates. Detail in `ARCHITECTURE.md`.
 
-### Drain estimate — 2026-09-09
+### Drain estimate — 2026-09-09, reworked 2026-09-13
 
 "About three days left" under each device in the popover, and inside the daily reminder so it
-says something the menu bar does not. A least-squares slope through readings sampled on change
-rather than on the timer, cleared by a charge, and silent until three samples span six hours.
-`--dump-estimate` prints the series and the fit. Detail in `ARCHITECTURE.md`.
+says something the menu bar does not. One least-squares rate fitted across every run between
+charges, because use habits outlast a battery: a top-up no longer blanks the estimate. Quiet
+time up to now counts, and nothing is shown until a full day of history exists.
+`--check-estimate` runs the rule on synthetic cases; detail in `ARCHITECTURE.md`.
 
 ### Sleep reminder — built and removed, 2026-09-09
 

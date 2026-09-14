@@ -9,9 +9,10 @@ Internal session history is in `docs/claude/PROGRESS.md`.
 
 ### Added
 - **A drain estimate** — "about three days left" under each device in the popover, and inside
-  the daily reminder so it says something the menu bar does not already show. It stays blank
-  until it has watched the battery for a few days, which is deliberate: a number guessed from
-  two readings would be wrong by a factor of ten and believed anyway.
+  the daily reminder so it says something the menu bar does not already show. It waits for a
+  full day of history before saying anything, which is deliberate: a number guessed from a few
+  hours would describe your working hours, not your week. It learns how you use each device, so
+  charging no longer starts it over.
 - **An update notice.** Once a day magicbar asks GitHub whether a newer version exists, and if
   one does, the bottom of the popover says "Version … available" and opens the download page.
   It never downloads or installs anything itself. This is the app's only network access, and

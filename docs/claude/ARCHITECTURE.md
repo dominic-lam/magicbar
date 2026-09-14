@@ -205,41 +205,56 @@ Verified 2026-09-08 by walking a synthetic sequence:
 
 ## The drain estimate
 
-"About three days left" is a least-squares slope through a stored series of readings, in
-`DrainHistory`. Four decisions carry it:
+"About three days left" is one least-squares slope fitted across a device's whole discharge
+history, in `DrainHistory`. *Reworked 2026-09-13 so the rate survives a charge.*
 
 - **Sample on change, not on the timer.** The poll is every five seconds; these peripherals
-  report whole percents and a Magic Mouse takes weeks to cross one. Sampling the timer would
-  store seventeen thousand copies of the same number a day. Recording only movement makes the
-  series the same shape as the drain curve at a fraction of the size — eight samples encode to
-  258 bytes.
-- **Least squares, not first-to-last.** Two endpoints give a one-point Bluetooth wobble the
-  same weight as the whole trend, and this app has already been bitten by that once in the
-  alert rule.
-- **A rise of five clears the series.** Everything before a charge describes a battery that no
-  longer exists. Five rather than one for the same reason the alert rule uses five: a wobble is
-  not a cable. A charging device drops its series outright.
-- **Say nothing rather than guess.** Three samples spanning six hours is the floor. Below that
-  there is no phrase at all, and a fresh install shows nothing for days. A number invented from
-  two readings an hour apart would be wrong by a factor of ten and believed anyway.
+  report whole percents and a Magic Mouse takes hours to cross one. Sampling the timer would
+  store seventeen thousand copies of the same number a day.
+- **The habit is the constant, not the battery.** Daily use barely changes, so a rate measured
+  before a charge still holds after it. Until 2026-09-13 a charge deleted the history and the
+  estimate went blank for hours after every top-up. Now a charge — the charging flag, or a rise
+  of five — closes the current segment, and the next reading opens a new one. Five rather than
+  one for the same reason the alert rule uses five: a wobble is not a cable.
+- **One slope, each segment with its own starting level.** Pooled least squares: each segment is
+  centred on its own mean before the sums are combined, so the jump at a charge never reads as
+  drain, and time on the cable counts toward nothing. Least squares rather than first-to-last,
+  so a one-point wobble does not carry the weight of the trend.
+- **"Now" is a point.** The current reading is added at the current time to the open segment.
+  Without it the fit behaves as if the clock stopped at the last change, so a quiet weekend
+  after a Friday drop was invisible — a five-fold overstatement in the synthetic case below.
+- **A full day before any number.** At least 24 hours, summed across segments, and three
+  points. The original six-hour floor measured a time of day: working hours read pessimistic, a
+  window across a night optimistic.
+- **Percent, not mAh.** The registry exposes only `BatteryPercent` and `BatteryStatusFlags`
+  (checked 2026-09-13) — no capacity, current or voltage. The gauge's percent already reflects
+  an aged battery's real capacity, which a rated mAh figure would not.
+- **200 samples, forgotten after 30 silent days.** Several weeks of use for a mouse. A device
+  used to be forgotten the moment it left the registry while healthy, so a keyboard switched off
+  overnight lost its whole history.
+- **Old saved data still loads.** The previous single `series` becomes one segment.
 
-Verified 2026-09-09 by driving `DrainHistory` with synthetic series, since the real thing takes
-a week to observe:
+`--check-estimate` runs synthetic cases through `DrainHistory` alone, touching no saved data.
+Output on 2026-09-13:
 
-| Input | Output |
-|---|---|
-| 1% per 12h from 50%, 8 samples | about 22 days left |
-| 2 samples | nothing |
-| 5 samples inside 2 hours | nothing |
-| a one-point rise mid-series | series kept, rate still produced |
-| a rise of 30 | series reset to one sample |
-| `isCharging` true | series dropped |
-| 20 identical readings | one sample stored |
-| 60 samples | capped at 30 |
-| 4% per hour from 40% | about 2 hours left |
+| Input | Rate | Says |
+|---|---|---|
+| 4%/day for 3 days, now at 48% | 4.0%/day | about 12 days left |
+| 4%/day for 18 hours only | none | nothing |
+| same as the first, now on the cable | 4.0%/day | about 12 days left |
+| then charged to 90%, one hour later | 4.0%/day | about 23 days left |
+| 1 busy day at 4%/day, then 3 quiet days | 0.8%/day | over a month left |
+| same, ignoring the quiet time | 4.0%/day | — |
+| a one-point rise mid-run | 1.8%/day | one segment kept |
+| 250 readings | — | 200 stored |
+| the pre-2026-09-13 saved format | — | read as 1 segment |
 
-`--dump-estimate` prints the stored series, the fit, and what it currently implies, because a
-rule that depends on days of accumulated history is otherwise plausible and unfalsifiable.
+**Known bias, not corrected:** right after a charge the reported level creeps up a point or two
+while it settles — seen 2026-09-13 as 39 → 40 → 41 after unplugging. Those points stay in the
+new segment and flatten its slope a little, which reads optimistic.
+
+`--dump-estimate` prints the stored segments and the live fit. It builds a real store on the
+real saved data; see the diagnostics warning under Testing.
 
 ---
 
