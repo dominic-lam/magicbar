@@ -1,0 +1,954 @@
+<meta charset="utf-8">
+<title>Percent to Days Left</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --plane:        #f5f6f4;
+  --surface:      #fbfcfa;
+  --surface-sunk: #eef0ec;
+  --ink:          #14171a;
+  --ink-2:        #52565b;
+  --ink-3:        #878c88;
+  --rule:         #e0e3dd;
+  --rule-strong:  #c7cbc4;
+  --series-mouse: #2a78d6;
+  --series-kbd:   #1baf7a;
+  --fit:          #14171a;
+  --warning:      #fab219;
+  --critical:     #d03b3b;
+  --tip-bg:       #14171a;
+  --tip-ink:      #fbfcfa;
+
+  --sans:  "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --mono:  "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane:        #0e0f10;
+    --surface:      #17181a;
+    --surface-sunk: #1e2022;
+    --ink:          #f3f4f1;
+    --ink-2:        #c2c3bb;
+    --ink-3:        #8b8d85;
+    --rule:         #282a2c;
+    --rule-strong:  #3a3d3f;
+    --series-mouse: #3987e5;
+    --series-kbd:   #199e70;
+    --fit:          #f3f4f1;
+    --tip-bg:       #f3f4f1;
+    --tip-ink:      #14171a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane:        #0e0f10;
+  --surface:      #17181a;
+  --surface-sunk: #1e2022;
+  --ink:          #f3f4f1;
+  --ink-2:        #c2c3bb;
+  --ink-3:        #8b8d85;
+  --rule:         #282a2c;
+  --rule-strong:  #3a3d3f;
+  --series-mouse: #3987e5;
+  --series-kbd:   #199e70;
+  --fit:          #f3f4f1;
+  --tip-bg:       #f3f4f1;
+  --tip-ink:      #14171a;
+}
+
+body {
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1020px;
+  margin: 0 auto;
+  padding-block: 40px 72px;
+  padding-left: 20px;
+  padding-right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.col { max-width: 63ch; display: flex; flex-direction: column; gap: 18px; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+
+h1, h2, h3, .eyebrow, .tile-label, .fig-title, .fig-note, table, .chip, .step-n, code, .mono {
+  font-family: var(--sans);
+}
+h1 {
+  font-size: clamp(30px, 5vw, 44px);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+h2 {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+h3 { font-size: 16px; font-weight: 600; margin: 0; }
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0;
+}
+.lede { font-size: 19px; color: var(--ink-2); }
+.small { font-size: 14.5px; color: var(--ink-2); }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--surface-sunk); padding: 1px 5px; border-radius: 3px; }
+
+/* masthead */
+.masthead { display: flex; flex-direction: column; gap: 22px; }
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.tile { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
+.tile-label {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.tile-value { font-family: var(--sans); font-size: 27px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; }
+.tile-sub { font-size: 12.5px; font-family: var(--sans); color: var(--ink-2); }
+
+/* steps */
+.step { display: flex; flex-direction: column; gap: 18px; }
+.step-head { display: flex; align-items: baseline; gap: 12px; max-width: 63ch; }
+.step-n {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--series-mouse);
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  padding: 2px 7px;
+  flex: none;
+}
+
+/* figures */
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.fig-frame {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 16px 16px 10px;
+  position: relative;
+}
+.fig-title { font-size: 14.5px; font-weight: 600; margin: 0 0 2px; }
+.fig-sub { font-family: var(--sans); font-size: 12.5px; color: var(--ink-2); margin: 0 0 10px; }
+figcaption { font-family: var(--serif); font-size: 14.5px; color: var(--ink-2); max-width: 63ch; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: var(--sans); fill: var(--ink-3); font-size: 11px; }
+svg text.val { font-variant-numeric: tabular-nums; }
+.hit { fill: transparent; cursor: crosshair; }
+
+/* tooltip */
+.tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--tip-bg);
+  color: var(--tip-ink);
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 7px 9px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .09s linear;
+  z-index: 5;
+}
+.tip strong { font-weight: 600; }
+.tip[data-on="1"] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+
+/* tables */
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 12px; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--ink-2); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+td:first-child, th:first-child { text-align: left; }
+tbody tr:last-child td { border-bottom: none; }
+tr.flag td { background: color-mix(in srgb, var(--warning) 14%, transparent); }
+tr.now td { background: color-mix(in srgb, var(--series-mouse) 10%, transparent); }
+
+details {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 12px 16px;
+}
+details + details { margin-top: 10px; }
+summary { font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; }
+summary::marker { color: var(--ink-3); }
+details[open] summary { margin-bottom: 12px; }
+details .table-scroll { border: none; }
+
+/* rule list */
+.rules { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.rule-row { background: var(--surface); display: grid; grid-template-columns: minmax(150px, 210px) 1fr; gap: 14px; padding: 11px 14px; align-items: baseline; }
+.rule-when { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+.rule-then { font-family: var(--sans); font-size: 13.5px; color: var(--ink-2); }
+@media (max-width: 520px) { .rule-row { grid-template-columns: 1fr; gap: 4px; } }
+
+pre {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+pre .dim { color: var(--ink-3); }
+
+.formula {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--series-mouse);
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  overflow-x: auto;
+}
+.callout {
+  background: var(--surface-sunk);
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.callout strong { color: var(--ink); font-weight: 500; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-family: var(--sans); font-size: 12.5px; color: var(--ink-2); margin-bottom: 8px; }
+.key { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+.swatch.line { height: 2px; border-radius: 0; width: 16px; }
+
+footer { border-top: 1px solid var(--rule); padding-top: 18px; font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-direction: column; gap: 5px; }
+:focus-visible { outline: 2px solid var(--series-mouse); outline-offset: 2px; border-radius: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="col">
+      <p class="eyebrow">magicbar · drain estimate</p>
+      <h1>From one integer to &ldquo;about two days left&rdquo;</h1>
+      <p class="lede">macOS hands this app a single whole number per device. No capacity, no current,
+        no history. Here is every step between that number and the phrase in the menu bar, worked
+        on the real readings taken from one Magic Mouse and one Magic Keyboard.</p>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </header>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">00</span><h2>What the system actually gives</h2></div>
+      <p>Every five seconds the app reads the IO registry entry for each peripheral that reports a
+        battery. This is the whole payload it has to work with:</p>
+    </div>
+    <pre><span class="dim">$ ioreg -r -c AppleDeviceManagementHIDEventService -l</span>
+  "DeviceAddress"      = "bc-89-a7-e3-b9-51"
+  "BatteryPercent"     = 14
+  "BatteryStatusFlags" = 0
+  "HasBattery"         = Yes</pre>
+    <div class="col">
+      <p class="small">There is no milliamp-hour figure, no cycle count, no maximum capacity and no
+        timestamp &mdash; those exist elsewhere in the registry only for the Mac&rsquo;s own battery. A
+        reading is therefore a pair: <strong>a whole percent, and the moment the app saw it</strong>. Everything
+        below is built from pairs like that.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">01</span><h2>Keep only the moments the number moves</h2></div>
+      <p>A five-second poll produces 17,280 readings per device per day. A Magic Mouse crosses a
+        whole percent every few hours, so nearly all of those are the previous number again. The app
+        writes a row only when the value actually changes.</p>
+    </div>
+    <figure>
+      <div class="fig-frame">
+        <p class="fig-title">Every stored reading, both devices</p>
+        <p class="fig-sub">Battery level over time. Each dot is one stored row &mdash; the moment the
+          percentage changed.</p>
+        <div class="legend">
+          <span class="key"><span class="swatch" style="background:var(--series-mouse)"></span>Magic Mouse</span>
+          <span class="key"><span class="swatch" style="background:var(--series-kbd)"></span>Magic Keyboard</span>
+          <span class="key"><span class="swatch" style="background:var(--warning)"></span>warn level, 20%</span>
+          <span class="key"><span class="swatch" style="background:var(--critical)"></span>urgent level, 10%</span>
+        </div>
+        <svg id="fig-series" viewBox="0 0 760 330" role="img" aria-label="Battery level over time for both devices, with the mouse falling from 41 to 14 percent and the keyboard from 56 to 50 percent"></svg>
+        <div class="tip" id="tip-series"></div>
+      </div>
+      <figcaption>The keyboard loses about one percent a day. The mouse lost twenty-seven in the
+        same span. Same rule, same storage, wildly different slopes &mdash; which is why a rate is
+        fitted per device rather than assumed.</figcaption>
+    </figure>
+    <div class="col">
+      <p class="callout"><strong>Compression, not sampling.</strong> The dots above are the complete
+        record: <span data-stat="totalRows"></span> rows for both devices, <span data-stat="bytes"></span> bytes
+        on disk. Recording every poll instead would have produced roughly
+        <span data-stat="pollsAvoided"></span> rows over the same period, describing exactly the same curve.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">02</span><h2>Decide what each new reading means</h2></div>
+      <p>A changed value is not automatically drain. It might be a charge, a cable, or Bluetooth
+        noise. Each reading is classified before it is stored:</p>
+    </div>
+    <div class="rules">
+      <div class="rule-row"><span class="rule-when">same as last</span><span class="rule-then">Discard. Nothing happened worth a row.</span></div>
+      <div class="rule-row"><span class="rule-when">charging flag set</span><span class="rule-then">Close the current run. The battery is filling; that is not a drain curve.</span></div>
+      <div class="rule-row"><span class="rule-when">rose by 5 or more</span><span class="rule-then">Treat as a charge the flag missed. Close the run, open a new one.</span></div>
+      <div class="rule-row"><span class="rule-when">rose by 1 to 4</span><span class="rule-then">Keep it. Bluetooth readings wobble; a wobble is not a cable.</span></div>
+      <div class="rule-row"><span class="rule-when">fell by any amount</span><span class="rule-then">Append to the current run.</span></div>
+    </div>
+    <div class="col">
+      <p>Both of the interesting cases are in the real data. The mouse was unplugged at 19:23 on
+        13 September, and its reported level kept climbing for half an hour afterwards while the
+        gauge settled:</p>
+    </div>
+    <div class="table-scroll" id="table-creep"></div>
+    <div class="col">
+      <p>And in the early hours of 15 September the reading went back up by one, then resumed
+        falling. Under a threshold of one this would have been read as a recharge and thrown away
+        the entire history; at five it is correctly ignored:</p>
+    </div>
+    <div class="table-scroll" id="table-wobble"></div>
+    <div class="col">
+      <p class="small">A run of readings between two charges is called a <em>segment</em>. Both
+        devices currently hold exactly one, because neither has been charged since 13 September.
+        Segments are kept, not deleted, when a charge happens &mdash; the reason appears in step 04.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">03</span><h2>Convert rows into coordinates</h2></div>
+      <p>The fit needs numbers, not timestamps. Each row becomes a point: hours elapsed since its
+        segment began, against the level. One extra point is added at the end &mdash; <em>now</em>, at
+        the current reading &mdash; so that quiet time since the last change counts as time that used
+        almost nothing.</p>
+    </div>
+    <div class="table-scroll" id="table-coords"></div>
+    <div class="col">
+      <p class="small">Without that final point, a battery that dropped on Friday and sat untouched
+        all weekend would be measured as though the clock stopped on Friday, and the drain would be
+        overstated several times over.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">04</span><h2>Fit one line through all of it</h2></div>
+      <p>The rate is the slope of the straight line that sits closest to every point at once &mdash;
+        least squares. Two readings alone would let a single wobble set the answer; a line through
+        thirty-three cannot be moved far by any one of them.</p>
+    </div>
+    <div class="formula">rate = − Σ(h−h̄)(L−L̄) ÷ Σ(h−h̄)²</div>
+    <div class="col">
+      <p>In words: measure how far each point sits from the average time and the average level,
+        multiply those two distances together, and add up the results. Points that are early and
+        high, or late and low, contribute negative numbers &mdash; the signature of a falling battery.
+        Dividing by the spread of the times converts &ldquo;these move together&rdquo; into &ldquo;percent per
+        hour&rdquo;.</p>
+    </div>
+    <figure>
+      <div class="fig-frame">
+        <p class="fig-title">The fitted line, Magic Mouse</p>
+        <p class="fig-sub">All <span data-stat="mousePoints"></span> points, including <em>now</em>, and the
+          least-squares line through them.</p>
+        <div class="legend">
+          <span class="key"><span class="swatch" style="background:var(--series-mouse)"></span>stored reading</span>
+          <span class="key"><span class="swatch line" style="background:var(--fit)"></span>fitted line</span>
+        </div>
+        <svg id="fig-fit" viewBox="0 0 760 330" role="img" aria-label="Scatter of mouse battery readings with the fitted least-squares line running through them"></svg>
+        <div class="tip" id="tip-fit"></div>
+      </div>
+      <figcaption>The line is pinned at the crossing point of the two averages and tilted until no
+        other tilt sits closer to the cloud.</figcaption>
+    </figure>
+    <div class="col">
+      <p>Worked on the mouse&rsquo;s real readings, the two sums come out as:</p>
+    </div>
+    <div class="table-scroll" id="table-sums"></div>
+    <div class="col">
+      <p class="callout"><strong>Every segment shares one slope, but keeps its own starting level.</strong>
+        Each run is centred on its own averages before the sums are combined, so the jump upward at a
+        charge never enters the arithmetic as drain, and time spent on the cable counts toward
+        nothing. Your habits carry across a charge even though the battery level does not &mdash; which
+        is why charging no longer blanks the estimate.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">05</span><h2>Not every reading counts equally</h2></div>
+      <p>The denominator, <span class="mono">(h−h̄)²</span>, is also the weight each point carries. It
+        grows with the square of a point&rsquo;s distance from the average time, so the readings at the
+        two ends of a run decide the tilt and the ones in the middle barely register.</p>
+    </div>
+    <figure>
+      <div class="fig-frame">
+        <p class="fig-title">Influence of each reading on the result</p>
+        <p class="fig-sub">The <span class="mono">(h−h̄)²</span> term per reading, Magic Mouse.</p>
+        <svg id="fig-leverage" viewBox="0 0 760 300" role="img" aria-label="Bar chart showing leverage per reading, U-shaped with the first and last readings dominating"></svg>
+        <div class="tip" id="tip-leverage"></div>
+      </div>
+      <figcaption>The middle third of the run &mdash; eleven readings &mdash; contributes
+        <span data-stat="leverageShare"></span> of the total weight. This is why the settling readings
+        right after a charge matter more than their count suggests: they sit at the far left, where
+        influence is highest.</figcaption>
+    </figure>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">06</span><h2>Refuse to answer too early, then say it plainly</h2></div>
+      <p>A slope exists as soon as there are two points. It is worth showing much later. Three gates
+        stand between the arithmetic and the menu bar:</p>
+    </div>
+    <div class="rules">
+      <div class="rule-row"><span class="rule-when">≥ 3 points</span><span class="rule-then">Two points describe a wobble, not a habit.</span></div>
+      <div class="rule-row"><span class="rule-when">≥ 24 hours</span><span class="rule-then">A shorter window measures a time of day. Working hours read fast; a night reads slow.</span></div>
+      <div class="rule-row"><span class="rule-when">slope is falling</span><span class="rule-then">A flat or rising fit is not a drain. Silence is the correct output.</span></div>
+    </div>
+    <div class="col">
+      <p>Past all three, the level is divided by the rate and the result is rounded into deliberately
+        coarse language. A straight line through whole-number readings cannot justify &ldquo;2.7 days&rdquo;.</p>
+    </div>
+    <div class="table-scroll" id="table-phrase"></div>
+    <div class="col">
+      <p class="callout" id="verdict"></p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">07</span><h2>What the residuals admit</h2></div>
+      <p>A straight line through a battery is an assumption, and the leftovers show where it is
+        wrong. Each point below is one reading minus what the line predicted for that moment.</p>
+    </div>
+    <figure>
+      <div class="fig-frame">
+        <p class="fig-title">Residuals: reading minus fitted line</p>
+        <p class="fig-sub">Above the rule, the battery held more charge than the line expected. Below
+          it, less.</p>
+        <svg id="fig-resid" viewBox="0 0 760 290" role="img" aria-label="Residual plot showing the first readings sitting above the line and a sagging middle"></svg>
+        <div class="tip" id="tip-resid"></div>
+      </div>
+      <figcaption>The opening readings sit highest &mdash; that is the gauge settling upward after the
+        cable came out, and it tilts the line slightly steeper than the truth. The pattern is a gentle
+        arc rather than noise, which says the drain is not perfectly straight.</figcaption>
+    </figure>
+    <figure>
+      <div class="fig-frame">
+        <p class="fig-title">Drain rate between consecutive readings</p>
+        <p class="fig-sub">Each bar is one gap between stored readings, expressed as percent per day.</p>
+        <svg id="fig-rates" viewBox="0 0 760 300" role="img" aria-label="Bar chart of instantaneous drain rates per interval, varying from near zero to over fifty percent per day around a fitted average"></svg>
+        <div class="tip" id="tip-rates"></div>
+      </div>
+      <figcaption>This is the real shape of usage: short gaps during working hours imply enormous
+        rates, long overnight gaps almost none. The fitted average is the horizontal rule. No single
+        bar is the answer, and no six-hour window of them would be either.</figcaption>
+    </figure>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">08</span><h2>Known weaknesses</h2></div>
+    </div>
+    <div class="rules">
+      <div class="rule-row"><span class="rule-when">post-charge creep</span><span class="rule-then">The gauge settles upward for a while after unplugging. Those readings sit at the high-influence end of the run and tilt the line. Uncorrected.</span></div>
+      <div class="rule-row"><span class="rule-when">habit change</span><span class="rule-then">A quiet week and a failing battery look identical from the outside. This is why the app does not claim to report battery health.</span></div>
+      <div class="rule-row"><span class="rule-when">whole-number readings</span><span class="rule-then">At one percent a day, a device produces one data point a day. Precision arrives slowly.</span></div>
+      <div class="rule-row"><span class="rule-when">straight-line assumption</span><span class="rule-then">The residuals arc rather than scatter. Nothing yet suggests a faster drain near empty, but the record only reaches 14%.</span></div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">09</span><h2>The readings themselves</h2></div>
+      <p class="small">Every value plotted above, as stored. Highlighted rows are the settling
+        readings after the charge and the single upward wobble.</p>
+    </div>
+    <details open>
+      <summary>Magic Mouse &mdash; <span data-stat="mouseRows"></span> readings</summary>
+      <div class="table-scroll" id="table-mouse"></div>
+    </details>
+    <details>
+      <summary>Magic Keyboard &mdash; <span data-stat="kbdRows"></span> readings</summary>
+      <div class="table-scroll" id="table-kbd"></div>
+    </details>
+  </section>
+
+  <footer>
+    <span id="provenance"></span>
+    <span>Source: the app&rsquo;s own saved history, read from <span class="mono">UserDefaults</span> key
+      <span class="mono">drainHistory</span>. Figures are computed in this page from those readings, frozen at
+      the moment of export; the running app recomputes continuously and will differ slightly.</span>
+  </footer>
+</div>
+
+<script>
+const DATA = {"exported":"2026-09-16T17:00:04-07:00","nowRef":811296004.57,"live":{"c4-14-11-04-4d-d8":50,"bc-89-a7-e3-b9-51":14},"bytes":1425,"devices":{"bc-89-a7-e3-b9-51":{"name":"Magic Mouse","segments":[[[811045402.41,39],[811045405.93,40],[811047204.59,41],[811048623.54,40],[811053279.81,39],[811058035.00,38],[811059519.30,37],[811075854.10,36],[811090441.06,35],[811103799.97,34],[811105351.55,33],[811107009.68,32],[811110874.65,31],[811113429.82,30],[811124741.22,29],[811127124.21,28],[811136511.10,27],[811149176.97,26],[811154731.15,25],[811158655.80,24],[811163659.77,25],[811184318.91,24],[811201797.08,23],[811203971.88,22],[811209252.85,21],[811213298.19,20],[811224804.78,19],[811228849.19,18],[811247016.82,17],[811287420.52,16],[811290922.11,15],[811295390.32,14]]]},"c4-14-11-04-4d-d8":{"name":"Magic Keyboard","segments":[[[810970457.98,56],[811022425.36,55],[811041852.65,54],[811110522.91,53],[811137576.51,52],[811213805.21,51],[811247542.41,50]]]}}};
+
+const REF_EPOCH = 978307200000; // 2001-01-01 UTC in JS milliseconds
+const toDate = t => new Date(t * 1000 + REF_EPOCH);
+const fmtDay = t => toDate(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+const fmtTime = t => toDate(t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+const fmtStamp = t => `${fmtDay(t)} ${fmtTime(t)}`;
+const num = (v, d = 2) => v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const MOUSE = "bc-89-a7-e3-b9-51", KBD = "c4-14-11-04-4d-d8";
+
+/* Build the points the fit consumes: hours since the segment started, plus "now". */
+function coordsFor(id) {
+  const dev = DATA.devices[id];
+  const out = [];
+  dev.segments.forEach((seg, si) => {
+    const origin = seg[0][0];
+    const pts = seg.map(([t, p], i) => ({ t, p, h: (t - origin) / 3600, seg: si, idx: i + 1, isNow: false }));
+    if (si === dev.segments.length - 1 && DATA.nowRef > seg[seg.length - 1][0]) {
+      pts.push({ t: DATA.nowRef, p: DATA.live[id], h: (DATA.nowRef - origin) / 3600, seg: si, idx: pts.length + 1, isNow: true });
+    }
+    out.push(pts);
+  });
+  return out;
+}
+
+/* Pooled least squares: every segment centred on its own means, one shared slope. */
+function fit(id) {
+  const segs = coordsFor(id);
+  let cov = 0, varr = 0, points = 0, span = 0;
+  const all = [];
+  segs.forEach(pts => {
+    all.push(...pts);
+    if (pts.length < 2) return;
+    const mh = pts.reduce((s, q) => s + q.h, 0) / pts.length;
+    const ml = pts.reduce((s, q) => s + q.p, 0) / pts.length;
+    pts.forEach(q => {
+      q.dh = q.h - mh; q.dl = q.p - ml;
+      q.prod = q.dh * q.dl; q.lev = q.dh * q.dh;
+      cov += q.prod; varr += q.lev;
+    });
+    span += pts[pts.length - 1].h - pts[0].h;
+    points += pts.length;
+    pts.meanH = mh; pts.meanL = ml;
+  });
+  const slope = varr > 0 ? cov / varr : 0;
+  const meanH = segs[0].meanH ?? 0, meanL = segs[0].meanL ?? 0;
+  const ok = points >= 3 && span >= 24 && varr > 0 && slope < 0;
+  const rate = ok ? -slope : null;
+  const level = DATA.live[id];
+  const hours = rate ? level / rate : null;
+  return { segs, all, cov, varr, slope, rate, hours, points, span, level, ok, meanH, meanL };
+}
+
+function phrase(hours) {
+  if (hours == null) return "nothing yet";
+  if (hours < 1) return "under an hour left";
+  if (hours < 48) return `about ${Math.round(hours)} hours left`;
+  if (hours < 720) return `about ${Math.round(hours / 24)} days left`;
+  return "over a month left";
+}
+
+const mouse = fit(MOUSE), kbd = fit(KBD);
+
+/* ---------- small SVG helpers ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, parent) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function axes(svg, { x, y, w, h, xTicks, yTicks, yLabel }) {
+  const g = el("g", {}, svg);
+  yTicks.forEach(t => {
+    const py = y(t.v);
+    el("line", { x1: 52, y1: py, x2: 52 + w, y2: py, stroke: "var(--rule)", "stroke-width": 1 }, g);
+    const lab = el("text", { x: 44, y: py + 3.5, "text-anchor": "end", class: "val" }, g);
+    lab.textContent = t.label;
+  });
+  xTicks.forEach(t => {
+    const px = x(t.v);
+    const lab = el("text", { x: px, y: h + 20, "text-anchor": "middle", class: "val" }, g);
+    lab.textContent = t.label;
+  });
+  el("line", { x1: 52, y1: h, x2: 52 + w, y2: h, stroke: "var(--rule-strong)", "stroke-width": 1 }, g);
+  if (yLabel) {
+    const l = el("text", { x: 52, y: 12, "text-anchor": "start" }, g);
+    l.textContent = yLabel;
+  }
+  return g;
+}
+
+/* One shared hover layer: nearest point wins, generous hit area. */
+function hover(svg, tip, items, render) {
+  const box = el("rect", { x: 0, y: 0, width: 760, height: svg.viewBox.baseVal.height, class: "hit" }, svg);
+  const frame = svg.parentElement;
+  function show(e) {
+    const r = svg.getBoundingClientRect();
+    const scale = 760 / r.width;
+    const mx = (e.clientX - r.left) * scale, my = (e.clientY - r.top) * scale;
+    let best = null, bestD = Infinity;
+    items.forEach(it => {
+      const d = Math.hypot(it.x - mx, (it.y - my) * 0.6);
+      if (d < bestD) { bestD = d; best = it; }
+    });
+    if (!best || bestD > 90) { tip.dataset.on = "0"; return; }
+    tip.innerHTML = render(best);
+    tip.dataset.on = "1";
+    const fr = frame.getBoundingClientRect();
+    const px = (r.left - fr.left) + best.x / scale;
+    const py = (r.top - fr.top) + best.y / scale;
+    tip.style.left = Math.max(6, Math.min(px - tip.offsetWidth / 2, fr.width - tip.offsetWidth - 6)) + "px";
+    tip.style.top = Math.max(2, py - tip.offsetHeight - 12) + "px";
+  }
+  box.addEventListener("mousemove", show);
+  box.addEventListener("mouseleave", () => tip.dataset.on = "0");
+  svg.addEventListener("touchstart", e => { if (e.touches[0]) show(e.touches[0]); }, { passive: true });
+}
+
+/* ---------- figure 1: both series ---------- */
+function drawSeries() {
+  const svg = document.getElementById("fig-series");
+  const W = 760, H = 330, pad = { t: 22, r: 92, b: 34, l: 52 };
+  const w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const rows = [];
+  [[MOUSE, "--series-mouse", mouse], [KBD, "--series-kbd", kbd]].forEach(([id, colorVar, f]) => {
+    f.all.forEach(q => rows.push({ ...q, id, colorVar, name: DATA.devices[id].name }));
+  });
+  const t0 = Math.min(...rows.map(r => r.t)), t1 = DATA.nowRef;
+  const x = t => pad.l + (t - t0) / (t1 - t0) * w;
+  const y = p => pad.t + (60 - p) / 60 * h;
+  const xTicks = [];
+  for (let d = 13; d <= 16; d++) {
+    const stamp = rows.find(r => toDate(r.t).getDate() === d);
+    if (stamp) xTicks.push({ v: new Date(toDate(stamp.t).setHours(0, 0, 0, 0)).getTime() / 1000 - REF_EPOCH / 1000, label: `Sep ${d}` });
+  }
+  axes(svg, { x, y, w, h: pad.t + h, xTicks, yTicks: [0, 10, 20, 30, 40, 50, 60].map(v => ({ v, label: v + "%" })), yLabel: "battery level" });
+
+  [[20, "--warning", "warn"], [10, "--critical", "urgent"]].forEach(([lvl, v, label]) => {
+    el("line", { x1: pad.l, y1: y(lvl), x2: pad.l + w, y2: y(lvl), stroke: `var(${v})`, "stroke-width": 1, opacity: 0.55 }, svg);
+    const t = el("text", { x: pad.l + w + 6, y: y(lvl) + 3.5, "text-anchor": "start", fill: `var(${v})` }, svg);
+    t.textContent = label;
+  });
+
+  const items = [];
+  [[MOUSE, "--series-mouse", mouse], [KBD, "--series-kbd", kbd]].forEach(([id, colorVar, f]) => {
+    const pts = f.all;
+    const d = pts.map((q, i) => `${i ? "L" : "M"}${x(q.t).toFixed(1)},${y(q.p).toFixed(1)}`).join(" ");
+    el("path", { d, fill: "none", stroke: `var(${colorVar})`, "stroke-width": 1.5, "stroke-linejoin": "round", opacity: 0.45 }, svg);
+    pts.forEach(q => {
+      el("circle", { cx: x(q.t), cy: y(q.p), r: q.isNow ? 5 : 3.2, fill: `var(${colorVar})`, stroke: "var(--surface)", "stroke-width": q.isNow ? 2 : 0 }, svg);
+      items.push({ x: x(q.t), y: y(q.p), q, name: DATA.devices[id].name });
+    });
+    const last = pts[pts.length - 1];
+    const lab = el("text", { x: x(last.t) + 9, y: y(last.p) + 4, "text-anchor": "start", fill: `var(${colorVar})`, "font-weight": "600" }, svg);
+    lab.textContent = `${DATA.devices[id].name} ${last.p}%`;
+  });
+  hover(svg, document.getElementById("tip-series"), items,
+    it => `<strong>${it.name} · ${it.q.p}%</strong><br>${fmtStamp(it.q.t)}${it.q.isNow ? " · now" : ""}`);
+}
+
+/* ---------- figure 2: the fit ---------- */
+function drawFit() {
+  const svg = document.getElementById("fig-fit");
+  const W = 760, H = 330, pad = { t: 22, r: 30, b: 34, l: 52 };
+  const w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const pts = mouse.all;
+  const hMax = pts[pts.length - 1].h;
+  const x = hh => pad.l + hh / hMax * w;
+  const y = p => pad.t + (45 - p) / 45 * h;
+  const xTicks = [0, 12, 24, 36, 48, 60, 72].filter(v => v <= hMax).map(v => ({ v, label: v + "h" }));
+  axes(svg, { x, y, w, h: pad.t + h, xTicks, yTicks: [0, 10, 20, 30, 40].map(v => ({ v, label: v + "%" })), yLabel: "battery level vs hours since the run began" });
+
+  const mh = mouse.meanH, ml = mouse.meanL;
+  const yAt = hh => ml + mouse.slope * (hh - mh);
+  el("line", { x1: x(0), y1: y(yAt(0)), x2: x(hMax), y2: y(yAt(hMax)), stroke: "var(--fit)", "stroke-width": 2 }, svg);
+  el("circle", { cx: x(mh), cy: y(ml), r: 4, fill: "none", stroke: "var(--fit)", "stroke-width": 1.5, opacity: 0.6 }, svg);
+  const pivot = el("text", { x: x(mh) + 8, y: y(ml) - 8, fill: "var(--ink-3)" }, svg);
+  pivot.textContent = "averages (h̄, L̄)";
+
+  const items = [];
+  pts.forEach(q => {
+    el("circle", { cx: x(q.h), cy: y(q.p), r: q.isNow ? 5 : 3.2, fill: "var(--series-mouse)", stroke: "var(--surface)", "stroke-width": q.isNow ? 2 : 0 }, svg);
+    items.push({ x: x(q.h), y: y(q.p), q });
+  });
+  const lab = el("text", { x: x(hMax) - 4, y: y(yAt(hMax)) + 20, "text-anchor": "end", fill: "var(--ink-2)", "font-weight": "600" }, svg);
+  lab.textContent = `${num(mouse.rate * 24, 1)}% per day`;
+  hover(svg, document.getElementById("tip-fit"), items,
+    it => `<strong>${it.q.p}%</strong> at ${num(it.q.h, 1)}h<br>${fmtStamp(it.q.t)}${it.q.isNow ? " · now" : ""}<br>line predicts ${num(yAt(it.q.h), 1)}%`);
+}
+
+/* ---------- figure 3: leverage ---------- */
+function drawLeverage() {
+  const svg = document.getElementById("fig-leverage");
+  const W = 760, H = 300, pad = { t: 22, r: 30, b: 34, l: 52 };
+  const w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const pts = mouse.all;
+  const maxLev = Math.max(...pts.map(q => q.lev));
+  const bw = w / pts.length;
+  const y = v => pad.t + (1 - v / maxLev) * h;
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({ v: f * maxLev, label: Math.round(f * maxLev) }));
+  axes(svg, {
+    x: px => px, y, w, h: pad.t + h,
+    xTicks: pts.map((q, i) => ({ i, q })).filter((_, i) => i % 5 === 0 || i === pts.length - 1)
+      .map(({ i, q }) => ({ v: pad.l + i * bw + bw / 2, label: q.isNow ? "now" : "#" + (i + 1) })),
+    yTicks, yLabel: "(h−h̄)², the weight each reading carries"
+  });
+  const items = [];
+  pts.forEach((q, i) => {
+    const bx = pad.l + i * bw + 1, by = y(q.lev), bh = pad.t + h - by;
+    const strong = q.lev > maxLev * 0.25;
+    el("rect", {
+      x: bx, y: by, width: Math.max(1, bw - 2), height: Math.max(1, bh),
+      fill: "var(--series-mouse)", opacity: strong ? 1 : 0.42, rx: 2
+    }, svg);
+    items.push({ x: bx + bw / 2, y: by, q, i });
+  });
+  hover(svg, document.getElementById("tip-leverage"), items,
+    it => `<strong>reading ${it.i + 1}${it.q.isNow ? " (now)" : ""}</strong><br>weight ${num(it.q.lev, 0)}<br>${it.q.p}% at ${num(it.q.h, 1)}h`);
+}
+
+/* ---------- figure 4: residuals ---------- */
+function drawResiduals() {
+  const svg = document.getElementById("fig-resid");
+  const W = 760, H = 290, pad = { t: 24, r: 30, b: 34, l: 52 };
+  const w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const pts = mouse.all;
+  const mh = mouse.meanH, ml = mouse.meanL;
+  const res = pts.map(q => ({ q, r: q.p - (ml + mouse.slope * (q.h - mh)) }));
+  const mx = Math.max(...res.map(d => Math.abs(d.r))) * 1.15;
+  const hMax = pts[pts.length - 1].h;
+  const x = hh => pad.l + hh / hMax * w;
+  const y = r => pad.t + (mx - r) / (2 * mx) * h;
+  axes(svg, {
+    x, y, w, h: pad.t + h,
+    xTicks: [0, 12, 24, 36, 48, 60, 72].filter(v => v <= hMax).map(v => ({ v, label: v + "h" })),
+    yTicks: [-2, -1, 0, 1, 2].filter(v => Math.abs(v) < mx).map(v => ({ v, label: (v > 0 ? "+" : "") + v })),
+    yLabel: "percentage points above or below the line"
+  });
+  el("line", { x1: pad.l, y1: y(0), x2: pad.l + w, y2: y(0), stroke: "var(--rule-strong)", "stroke-width": 1.5 }, svg);
+  const items = [];
+  res.forEach((d, i) => {
+    const early = i < 3;
+    el("circle", {
+      cx: x(d.q.h), cy: y(d.r), r: early ? 4.5 : 3.2,
+      fill: early ? "var(--warning)" : "var(--series-mouse)",
+      stroke: "var(--surface)", "stroke-width": early ? 1.5 : 0
+    }, svg);
+    items.push({ x: x(d.q.h), y: y(d.r), d });
+  });
+  const note = el("text", { x: x(0) + 6, y: y(res[2].r) - 12, fill: "var(--ink-2)" }, svg);
+  note.textContent = "gauge settling after the charge";
+  hover(svg, document.getElementById("tip-resid"), items,
+    it => `<strong>${it.d.r > 0 ? "+" : ""}${num(it.d.r, 2)} points</strong><br>${it.d.q.p}% at ${fmtStamp(it.d.q.t)}`);
+}
+
+/* ---------- figure 5: interval rates ---------- */
+function drawRates() {
+  const svg = document.getElementById("fig-rates");
+  const W = 760, H = 300, pad = { t: 22, r: 30, b: 34, l: 52 };
+  const w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const pts = mouse.all;
+  const gaps = [];
+  for (let i = 1; i < pts.length; i++) {
+    const dh = pts[i].h - pts[i - 1].h;
+    if (dh <= 0) continue;
+    gaps.push({ i, dh, rate: (pts[i - 1].p - pts[i].p) / dh * 24, a: pts[i - 1], b: pts[i] });
+  }
+  const cap = 60;
+  const maxR = Math.min(cap, Math.max(...gaps.map(g => Math.abs(g.rate))));
+  const bw = w / gaps.length;
+  const y = v => pad.t + (maxR - Math.max(Math.min(v, maxR), -maxR * 0.35)) / (maxR * 1.35) * h;
+  axes(svg, {
+    x: px => px, y, w, h: pad.t + h,
+    xTicks: [0, Math.floor(gaps.length / 3), Math.floor(gaps.length * 2 / 3), gaps.length - 1]
+      .map(i => ({ v: pad.l + i * bw + bw / 2, label: fmtDay(gaps[i].b.t) })),
+    yTicks: [-15, 0, 15, 30, 45, 60].filter(v => v <= maxR && v >= -maxR * 0.35).map(v => ({ v, label: v + "%" })),
+    yLabel: "implied rate per gap, percent per day"
+  });
+  const items = [];
+  gaps.forEach((g, i) => {
+    const capped = Math.min(g.rate, cap);
+    const y0 = y(0), y1 = y(capped);
+    el("rect", {
+      x: pad.l + i * bw + 1, y: Math.min(y0, y1), width: Math.max(1, bw - 2),
+      height: Math.max(1.5, Math.abs(y1 - y0)),
+      fill: g.rate < 0 ? "var(--warning)" : "var(--series-mouse)", opacity: 0.75, rx: 2
+    }, svg);
+    items.push({ x: pad.l + i * bw + bw / 2, y: Math.min(y0, y1), g });
+  });
+  const fitY = y(mouse.rate * 24);
+  el("line", { x1: pad.l, y1: fitY, x2: pad.l + w, y2: fitY, stroke: "var(--fit)", "stroke-width": 2 }, svg);
+  const lab = el("text", { x: pad.l + w - 4, y: fitY - 7, "text-anchor": "end", fill: "var(--ink-2)", "font-weight": "600" }, svg);
+  lab.textContent = `fitted average ${num(mouse.rate * 24, 1)}%/day`;
+  hover(svg, document.getElementById("tip-rates"), items,
+    it => `<strong>${num(it.g.rate, 1)}%/day implied</strong><br>${it.g.a.p}% → ${it.g.b.p}% over ${num(it.g.dh, 1)}h<br>${fmtStamp(it.g.b.t)}`);
+}
+
+/* ---------- tables ---------- */
+function table(target, cols, rows) {
+  const t = document.createElement("table");
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  cols.forEach(c => { const th = document.createElement("th"); th.textContent = c; hr.appendChild(th); });
+  thead.appendChild(hr); t.appendChild(thead);
+  const tb = document.createElement("tbody");
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    if (r.cls) tr.className = r.cls;
+    (r.cells || r).forEach(c => { const td = document.createElement("td"); td.innerHTML = c; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  document.getElementById(target).appendChild(t);
+}
+
+function readingRows(f, id) {
+  const pts = f.all;
+  return pts.map((q, i) => {
+    const prev = pts[i - 1];
+    const gap = prev ? (q.h - prev.h) : null;
+    const cls = id === MOUSE && i < 3 ? "flag" : (id === MOUSE && q.p === 25 && i === 20 ? "flag" : (q.isNow ? "now" : ""));
+    return {
+      cls,
+      cells: [
+        q.isNow ? "now" : "#" + (i + 1),
+        fmtStamp(q.t),
+        q.p + "%",
+        num(q.h, 2) + "h",
+        gap == null ? "—" : num(gap, 2) + "h"
+      ]
+    };
+  });
+}
+
+function render() {
+  /* tiles */
+  const tiles = [
+    { label: "Readings stored", value: mouse.all.length - 1 + DATA.devices[KBD].segments[0].length, sub: "both devices, all time" },
+    { label: "On disk", value: DATA.bytes.toLocaleString() + " B", sub: "the entire history" },
+    { label: "Fitted drain, mouse", value: num(mouse.rate * 24, 1) + "%", sub: "per day, across " + num(mouse.span, 0) + " hours" },
+    { label: "Mouse says", value: phrase(mouse.hours), sub: "at " + mouse.level + "% now" },
+    { label: "Keyboard says", value: phrase(kbd.hours), sub: "at " + kbd.level + "% now" }
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(t =>
+    `<div class="tile"><span class="tile-label">${t.label}</span><span class="tile-value">${t.value}</span><span class="tile-sub">${t.sub}</span></div>`).join("");
+
+  /* inline stats */
+  const totalRows = DATA.devices[MOUSE].segments[0].length + DATA.devices[KBD].segments[0].length;
+  const spanDays = (DATA.nowRef - DATA.devices[KBD].segments[0][0][0]) / 86400;
+  const stats = {
+    totalRows: totalRows,
+    bytes: DATA.bytes.toLocaleString(),
+    pollsAvoided: Math.round(spanDays * 17280 * 2 / 1000) + ",000",
+    mousePoints: mouse.all.length,
+    mouseRows: DATA.devices[MOUSE].segments[0].length,
+    kbdRows: DATA.devices[KBD].segments[0].length,
+    leverageShare: (() => {
+      const levs = mouse.all.map(q => q.lev);
+      const total = levs.reduce((s, v) => s + v, 0);
+      const mid = levs.slice(Math.floor(levs.length / 3), Math.ceil(levs.length * 2 / 3)).reduce((s, v) => s + v, 0);
+      return num(mid / total * 100, 1) + "%";
+    })()
+  };
+  document.querySelectorAll("[data-stat]").forEach(n => n.textContent = stats[n.dataset.stat]);
+
+  /* creep + wobble tables */
+  const pts = mouse.all;
+  table("table-creep", ["#", "When", "Level", "Change"], pts.slice(0, 4).map((q, i) => ({
+    cls: i < 3 ? "flag" : "",
+    cells: ["#" + (i + 1), fmtStamp(q.t), q.p + "%", i === 0 ? "first reading of the run" : (q.p > pts[i - 1].p ? "+1, kept — under the threshold of 5" : "−1, ordinary drain")]
+  })));
+  const wi = pts.findIndex((q, i) => i > 0 && q.p > pts[i - 1].p && i > 5);
+  table("table-wobble", ["#", "When", "Level", "Change"], pts.slice(wi - 1, wi + 2).map((q, i) => ({
+    cls: i === 1 ? "flag" : "",
+    cells: ["#" + (wi + i), fmtStamp(q.t), q.p + "%", i === 1 ? "+1, kept — a wobble, not a cable" : "−1, ordinary drain"]
+  })));
+
+  /* coordinates table */
+  const show = [0, 1, 2, 3, pts.length - 3, pts.length - 2, pts.length - 1];
+  table("table-coords", ["#", "Hours since start (h)", "Level (L)", "h − h̄", "L − L̄", "(h−h̄)(L−L̄)", "(h−h̄)²"],
+    show.map((i, k) => {
+      const q = pts[i];
+      const gapRow = k === 4 ? { cls: "", cells: ["⋯", "⋯", "⋯", "⋯", "⋯", "⋯", "⋯"] } : null;
+      const row = {
+        cls: q.isNow ? "now" : "",
+        cells: [q.isNow ? "now" : "#" + (i + 1), num(q.h, 2), q.p, num(q.dh, 2), num(q.dl, 2), num(q.prod, 1), num(q.lev, 1)]
+      };
+      return gapRow ? [gapRow, row] : [row];
+    }).flat());
+
+  /* sums table */
+  table("table-sums", ["Quantity", "Value"], [
+    ["points in the fit", mouse.all.length + ""],
+    ["mean hours, h̄", num(mouse.meanH, 3)],
+    ["mean level, L̄", num(mouse.meanL, 3) + "%"],
+    ["Σ(h−h̄)(L−L̄)", num(mouse.cov, 1)],
+    ["Σ(h−h̄)²", num(mouse.varr, 1)],
+    ["slope = Σ(h−h̄)(L−L̄) ÷ Σ(h−h̄)²", num(mouse.slope, 5) + " %/hour"],
+    ["rate = −slope × 24", "<strong>" + num(mouse.rate * 24, 2) + " %/day</strong>"]
+  ].map(c => ({ cells: c })));
+
+  /* phrase table */
+  table("table-phrase", ["Hours remaining", "Shown as"], [
+    ["under 1", "under an hour left"],
+    ["1 to 48", "about N hours left"],
+    ["48 to 720", "about N days left"],
+    ["over 720", "over a month left"]
+  ].map(c => ({ cells: c })));
+
+  document.getElementById("verdict").innerHTML =
+    `<strong>The mouse, worked end to end:</strong> ${mouse.all.length} points spanning ${num(mouse.span, 0)} hours,
+     fitted at ${num(mouse.rate * 24, 2)}% per day. At ${mouse.level}% that is
+     ${num(mouse.hours, 0)} hours, shown as &ldquo;${phrase(mouse.hours)}&rdquo;. The keyboard, on
+     ${kbd.all.length} points and ${num(kbd.rate * 24, 2)}% per day, reads &ldquo;${phrase(kbd.hours)}&rdquo;.`;
+
+  table("table-mouse", ["#", "When", "Level", "Hours since start", "Gap"], readingRows(mouse, MOUSE));
+  table("table-kbd", ["#", "When", "Level", "Hours since start", "Gap"], readingRows(kbd, KBD));
+
+  document.getElementById("provenance").textContent =
+    `Readings exported ${new Date(DATA.exported).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · ` +
+    `${DATA.devices[MOUSE].segments[0].length} mouse readings, ${DATA.devices[KBD].segments[0].length} keyboard readings, one segment each.`;
+
+  drawSeries(); drawFit(); drawLeverage(); drawResiduals(); drawRates();
+}
+render();
+</script>

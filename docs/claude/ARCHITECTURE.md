@@ -233,6 +233,12 @@ history, in `DrainHistory`. *Reworked 2026-09-13 so the rate survives a charge.*
   used to be forgotten the moment it left the registry while healthy, so a keyboard switched off
   overnight lost its whole history.
 - **Old saved data still loads.** The previous single `series` becomes one segment.
+- **Nothing is cached.** `fit` runs over the stored samples every time something asks for a
+  number — each popover row while the popover is open, the daily reminder, `--dump-estimate`.
+  There is no stored rate to invalidate. Two things move the answer: a new sample, which is
+  recorded only when the reading actually changes, and the `now` point, which advances with the
+  clock — so the rate drifts slowly even while the percentage holds still. `refresh()` (the
+  5-second poll plus coalesced IOKit change events) records samples; it never computes a rate.
 
 `--check-estimate` runs synthetic cases through `DrainHistory` alone, touching no saved data.
 Output on 2026-09-13:

@@ -162,3 +162,9 @@ The diagnostics writing to real app data — see NEXT SESSION.
 - **The level creeps up a point or two just after a charge** (39 → 40 → 41, 2026-09-13). Those
   readings stay in the new segment and flatten the fitted rate slightly — optimistic. Worth
   correcting only if the 2026-09-16 comparison shows the estimate running long.
+- **Nothing has ever been recorded below 14%.** The straight-line fit assumes the reported percent
+  falls evenly, and a fuel gauge often bends near empty. The mouse is heading there now: at
+  2026-09-16 it sat at 14% with a fitted 9.0%/day. *When it reaches single digits,* export the
+  history and compare the last readings against the line — a bend means the estimate runs long
+  exactly when it matters. Method and a 2026-09-16 snapshot:
+  `docs/reference/drain-estimate-walkthrough.html`.

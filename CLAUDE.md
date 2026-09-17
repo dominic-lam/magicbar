@@ -28,6 +28,9 @@ Rewritten from a bash implementation on 2026-09-08; that version is preserved at
 - **docs/claude/TODO.md** — open work only: NEXT SESSION, Active, Watch list
 - **docs/claude/PROGRESS.md** — session log and navigation index
 - **docs/reference/PROJECT_BRIEF.md** — fast snapshot: flow, key files, gotchas
+- **docs/reference/drain-estimate-walkthrough.html** — the estimate worked end to end on real
+  readings, with the data embedded. Open it in a browser. Also published as an artifact:
+  https://claude.ai/artifact/Fa2Duog6XLhoH8SdQLoLcD
 - **README.md** — for general users: plain language, no terminal commands
 - **docs/DEVELOPMENT.md** — build from source, terminal troubleshooting, diagnostic arguments
 - **CHANGELOG.md** — user-facing version history
