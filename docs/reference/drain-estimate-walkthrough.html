@@ -414,7 +414,31 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; font-family: var(
 
   <section class="step">
     <div class="col">
-      <div class="step-head"><span class="step-n">05</span><h2>Not every reading counts equally</h2></div>
+      <div class="step-head"><span class="step-n">05</span><h2>What a charge does to the rate</h2></div>
+      <p>The rate is never stored &mdash; only the readings are. So a charge cannot erase it: closing
+        a run leaves every reading in place, and the next fit reads them again and returns the same
+        slope. What changes is the level the slope is applied to.</p>
+      <p>A few hours after a charge to 80%, the sums look like this. The new run holds two points at
+        the same level, so it has nothing to say yet:</p>
+    </div>
+    <div class="table-scroll" id="table-handover-sums"></div>
+    <div class="col">
+      <p>The estimate therefore jumps from hours to days, while the rate barely moves &mdash; the
+        battery level changed, not the habit. As the new run accumulates hours it takes over, and its
+        share of the weight grows with the square of its length:</p>
+    </div>
+    <div class="table-scroll" id="table-handover"></div>
+    <div class="col">
+      <p class="small">Simulated by appending a charge to 80% to the real readings above and
+        assuming unchanged habits; the weight column is the part that does not depend on that
+        assumption. If usage genuinely changed, the rate would migrate along the same curve rather
+        than jump &mdash; roughly two days before the new behaviour owns the answer.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">06</span><h2>Not every reading counts equally</h2></div>
       <p>The denominator, <span class="mono">(h−h̄)²</span>, is also the weight each point carries. It
         grows with the square of a point&rsquo;s distance from the average time, so the readings at the
         two ends of a run decide the tilt and the ones in the middle barely register.</p>
@@ -435,7 +459,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; font-family: var(
 
   <section class="step">
     <div class="col">
-      <div class="step-head"><span class="step-n">06</span><h2>Refuse to answer too early, then say it plainly</h2></div>
+      <div class="step-head"><span class="step-n">07</span><h2>Refuse to answer too early, then say it plainly</h2></div>
       <p>A slope exists as soon as there are two points. It is worth showing much later. Three gates
         stand between the arithmetic and the menu bar:</p>
     </div>
@@ -456,7 +480,42 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; font-family: var(
 
   <section class="step">
     <div class="col">
-      <div class="step-head"><span class="step-n">07</span><h2>What the residuals admit</h2></div>
+      <div class="step-head"><span class="step-n">08</span><h2>What it would have said along the way</h2></div>
+      <p>The rate is recomputed from scratch every time anything asks for it, so the history above
+        can be replayed: at each reading, what would the fit have said with only the readings that
+        existed by then?</p>
+    </div>
+    <figure>
+      <div class="fig-frame">
+        <p class="fig-title">The rate, as the readings arrived</p>
+        <p class="fig-sub">Each point is the fit computed from every reading up to that moment &mdash;
+          not hindsight, but what the app would have shown at the time.</p>
+        <svg id="fig-converge" viewBox="0 0 760 300" role="img" aria-label="Line chart of the fitted rate over time, starting near 12 percent per day and settling toward 9"></svg>
+        <div class="tip" id="tip-converge"></div>
+      </div>
+      <figcaption>Silence for the first day, then a first answer that is too pessimistic, then a
+        steady walk down as the quiet hours accumulate. It has moved less than a percentage point a
+        day since.</figcaption>
+    </figure>
+    <div class="table-scroll" id="table-history"></div>
+    <div class="col">
+      <p>The same readings sliced by recency tell a much less stable story. Every row below ends at
+        the same moment; only the start moves:</p>
+    </div>
+    <div class="table-scroll" id="table-windows"></div>
+    <div class="col">
+      <p class="callout"><strong>This is the argument for the 24-hour floor, in real data.</strong>
+        A twelve-hour window catches a working stretch and reports a rate more than twice the
+        truth. A twenty-four-hour window that happens to straddle a night reports little over half
+        of it. Neither is wrong about its own hours &mdash; both are wrong about tomorrow. Only
+        windows spanning whole cycles of work and idleness converge, which is what the growing
+        history in the chart above is doing.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="col">
+      <div class="step-head"><span class="step-n">09</span><h2>What the residuals admit</h2></div>
       <p>A straight line through a battery is an assumption, and the leftovers show where it is
         wrong. Each point below is one reading minus what the line predicted for that moment.</p>
     </div>
@@ -487,7 +546,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; font-family: var(
 
   <section class="step">
     <div class="col">
-      <div class="step-head"><span class="step-n">08</span><h2>Known weaknesses</h2></div>
+      <div class="step-head"><span class="step-n">10</span><h2>Known weaknesses</h2></div>
     </div>
     <div class="rules">
       <div class="rule-row"><span class="rule-when">post-charge creep</span><span class="rule-then">The gauge settles upward for a while after unplugging. Those readings sit at the high-influence end of the run and tilt the line. Uncorrected.</span></div>
@@ -499,7 +558,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; font-family: var(
 
   <section class="step">
     <div class="col">
-      <div class="step-head"><span class="step-n">09</span><h2>The readings themselves</h2></div>
+      <div class="step-head"><span class="step-n">11</span><h2>The readings themselves</h2></div>
       <p class="small">Every value plotted above, as stored. Highlighted rows are the settling
         readings after the charge and the single upward wobble.</p>
     </div>
@@ -951,4 +1010,145 @@ function render() {
   drawSeries(); drawFit(); drawLeverage(); drawResiduals(); drawRates();
 }
 render();
+
+/* ---------- added: the handover after a charge, and rates from different starting points ---------- */
+
+/* The same pooled arithmetic, over an arbitrary list of {h, p} points. */
+function slopeOf(points, { gate = true } = {}) {
+  if (points.length < 3) return null;
+  const span = points[points.length - 1].h - points[0].h;
+  if (gate && span < 24) return null;
+  const mh = points.reduce((s, q) => s + q.h, 0) / points.length;
+  const ml = points.reduce((s, q) => s + q.p, 0) / points.length;
+  let cov = 0, varr = 0;
+  points.forEach(q => { cov += (q.h - mh) * (q.p - ml); varr += (q.h - mh) * (q.h - mh); });
+  if (varr <= 0 || cov / varr >= 0) return null;
+  return -cov / varr * 24;
+}
+
+function sumsOf(points) {
+  const mh = points.reduce((s, q) => s + q.h, 0) / points.length;
+  const ml = points.reduce((s, q) => s + q.p, 0) / points.length;
+  let cov = 0, varr = 0;
+  points.forEach(q => { cov += (q.h - mh) * (q.p - ml); varr += (q.h - mh) * (q.h - mh); });
+  return { cov, varr };
+}
+
+function buildHandover() {
+  const run1 = mouse.all.slice(0, -1);               // the "now" point moves to the new run
+  const a = sumsOf(run1);
+  const run2 = [{ h: 0, p: 80 }, { h: 3, p: 80 }];    // charged to 80%, three hours later
+  const b = sumsOf(run2);
+  const pooled = -(a.cov + b.cov) / (a.varr + b.varr) * 24;
+  table("table-handover-sums", ["Run", "Readings", "Σ(h−h̄)(L−L̄)", "Σ(h−h̄)²", "Contributes"], [
+    { cells: ["1 — before the charge", run1.length + "", num(a.cov, 1), num(a.varr, 1), "the whole answer"] },
+    { cells: ["2 — since the charge", "2", num(b.cov, 1), num(b.varr, 1), "nothing yet"] },
+    { cls: "now", cells: ["pooled", run1.length + 2 + "", num(a.cov + b.cov, 1), num(a.varr + b.varr, 1), "<strong>" + num(pooled, 2) + " %/day</strong>"] }
+  ]);
+
+  /* How the weight shifts as the new run lengthens, holding the habit constant. */
+  const rows = [[3, 1], [12, 4], [24, 9], [72, 27], [168, 63]].map(([hours, drops]) => {
+    const step = hours / Math.max(drops, 1);
+    const pts = [{ h: 0, p: 80 }];
+    for (let i = 1; i <= drops; i++) pts.push({ h: i * step, p: 80 - i });
+    pts.push({ h: hours, p: 80 - drops });
+    const s = sumsOf(pts);
+    const rate = -(a.cov + s.cov) / (a.varr + s.varr) * 24;
+    const left = (80 - drops) / rate * 24;
+    return {
+      cells: [
+        hours < 24 ? hours + " hours" : (hours / 24) + (hours === 24 ? " day" : " days"),
+        num(s.varr / (a.varr + s.varr) * 100, 1) + "%",
+        num(rate, 2) + " %/day",
+        phrase(left)
+      ]
+    };
+  });
+  table("table-handover", ["Time since the charge", "New run's share of the weight", "Pooled rate", "Shows"], rows);
+}
+
+function buildHistory() {
+  const pts = mouse.all;
+  const rows = [];
+  for (let i = 2; i < pts.length; i++) {
+    const sub = pts.slice(0, i + 1);
+    rows.push({ i, q: sub[i], rate: slopeOf(sub), span: sub[i].h - sub[0].h });
+  }
+  const firstAnswer = rows.find(r => r.rate != null);
+
+  /* chart */
+  const svg = document.getElementById("fig-converge");
+  const W = 760, H = 300, pad = { t: 24, r: 30, b: 34, l: 52 };
+  const w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const shown = rows.filter(r => r.rate != null);
+  const hMax = pts[pts.length - 1].h;
+  const rMax = Math.ceil(Math.max(...shown.map(r => r.rate)) + 1);
+  const rMin = Math.floor(Math.min(...shown.map(r => r.rate)) - 1);
+  const x = hh => pad.l + hh / hMax * w;
+  const y = v => pad.t + (rMax - v) / (rMax - rMin) * h;
+  const yTicks = [];
+  for (let v = rMin; v <= rMax; v += 2) yTicks.push({ v, label: v + "%" });
+  axes(svg, {
+    x, y, w, h: pad.t + h,
+    xTicks: [0, 12, 24, 36, 48, 60, 72].filter(v => v <= hMax).map(v => ({ v, label: v + "h" })),
+    yTicks, yLabel: "fitted rate, percent per day"
+  });
+
+  /* the gate: nothing at all before this */
+  el("rect", { x: pad.l, y: pad.t, width: x(firstAnswer.span) - pad.l, height: h, fill: "var(--ink-3)", opacity: 0.09 }, svg);
+  const gate = el("text", { x: pad.l + 8, y: pad.t + 16, fill: "var(--ink-3)" }, svg);
+  gate.textContent = "no estimate — under 24 hours of history";
+
+  el("line", { x1: pad.l, y1: y(mouse.rate * 24), x2: pad.l + w, y2: y(mouse.rate * 24), stroke: "var(--fit)", "stroke-width": 2, opacity: 0.55 }, svg);
+  const now = el("text", { x: pad.l + w - 4, y: y(mouse.rate * 24) - 8, "text-anchor": "end", fill: "var(--ink-2)", "font-weight": "600" }, svg);
+  now.textContent = `today: ${num(mouse.rate * 24, 2)}%/day`;
+
+  const d = shown.map((r, i) => `${i ? "L" : "M"}${x(r.q.h).toFixed(1)},${y(r.rate).toFixed(1)}`).join(" ");
+  el("path", { d, fill: "none", stroke: "var(--series-mouse)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+  const items = [];
+  shown.forEach(r => {
+    el("circle", { cx: x(r.q.h), cy: y(r.rate), r: 3.2, fill: "var(--series-mouse)", stroke: "var(--surface)", "stroke-width": 1 }, svg);
+    items.push({ x: x(r.q.h), y: y(r.rate), r });
+  });
+  hover(svg, document.getElementById("tip-converge"), items,
+    it => `<strong>${num(it.r.rate, 2)}%/day</strong><br>after ${it.r.i + 1} readings, ${num(it.r.span, 1)}h<br>${fmtStamp(it.r.q.t)}`);
+
+  /* milestone table */
+  const picks = [rows[0], rows[rows.length - 22], firstAnswer, rows[rows.length - 14], rows[rows.length - 7], rows[rows.length - 1]]
+    .filter((r, i, a) => r && a.indexOf(r) === i);
+  table("table-history", ["After", "When", "Level", "History", "Rate", "Would have said"],
+    picks.map(r => ({
+      cls: r.rate == null ? "flag" : (r === rows[rows.length - 1] ? "now" : ""),
+      cells: [
+        (r.i + 1) + " readings", fmtStamp(r.q.t), r.q.p + "%", num(r.span, 1) + "h",
+        r.rate == null ? "—" : num(r.rate, 2) + " %/day",
+        r.rate == null ? "nothing — under the 24-hour floor" : phrase(r.q.p / r.rate * 24)
+      ]
+    })));
+}
+
+function buildWindows() {
+  const pts = mouse.all;
+  const end = pts[pts.length - 1];
+  const rows = [12, 24, 48, 72].map(cut => {
+    const sub = pts.filter(q => end.h - q.h <= cut);
+    const rate = sub.length >= 3 ? slopeOf(sub, { gate: false }) : null;
+    return {
+      cls: cut < 24 ? "flag" : "",
+      cells: [
+        "last " + cut + " hours", sub.length + "", rate == null ? "—" : num(rate, 2) + " %/day",
+        rate == null ? "—" : phrase(end.p / rate * 24),
+        cut < 24 ? "refused — under the floor" : "allowed"
+      ]
+    };
+  });
+  rows.push({
+    cls: "now",
+    cells: ["everything (" + num(end.h, 0) + "h)", pts.length + "", "<strong>" + num(mouse.rate * 24, 2) + " %/day</strong>",
+      "<strong>" + phrase(mouse.hours) + "</strong>", "what the app uses"]
+  });
+  table("table-windows", ["Window", "Readings", "Rate", "Would say", "Status"], rows);
+}
+
+buildHandover(); buildHistory(); buildWindows();
 </script>
