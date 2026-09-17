@@ -101,6 +101,19 @@ Security. The release notes carry that instruction; do not quietly drop it.
       starts itself. Blocked on that reboot: the Mac last booted 2026-08-24, before magicbar
       existed. `com.dominic.mousebattery.plist` is still in `~/Library/LaunchAgents`.
 
+### The estimate model
+
+- [ ] **Judge the estimate against 3–5 full charge cycles, then decide whether a better model is
+      needed.** The user's acceptance criterion is a car's fuel-range gauge: *no sudden jumps.*
+      Today the level jump at a charge is the only discontinuity — the rate itself moves in small
+      steps — but that has never been watched through a real charge. The 200-sample cap was
+      removed on 2026-09-16 so the whole record survives.
+      *Next action:* wait for the cycles to accumulate; then re-export and compare fitted rate
+      against what actually happened, run by run. Method and the 2026-09-16 snapshot:
+      `docs/reference/drain-estimate-walkthrough.html` and
+      `docs/reference/drain-data-2026-09-16.json`; the page is also published at
+      https://claude.ai/artifact/Fa2Duog6XLhoH8SdQLoLcD and can be republished with fresh data.
+
 ### Launch
 
 - [ ] **Post to Reddit after `v1.2.0`.** Plan and drafts are in `docs/launch/REDDIT.md` —

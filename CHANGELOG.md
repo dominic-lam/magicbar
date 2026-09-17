@@ -5,6 +5,13 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Internal session history is in `docs/claude/PROGRESS.md`.
 
+## [Unreleased]
+
+### Changed
+- **The battery history is no longer trimmed.** magicbar used to keep the last 200 readings per
+  device — a few weeks — and quietly drop the oldest. It now keeps them all, so the record spans
+  several charges and the "days left" estimate can be judged against what actually happened.
+
 ## [1.2.0] — 2026-09-13
 
 ### Added

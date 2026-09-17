@@ -31,6 +31,8 @@ Rewritten from a bash implementation on 2026-09-08; that version is preserved at
 - **docs/reference/drain-estimate-walkthrough.html** — the estimate worked end to end on real
   readings, with the data embedded. Open it in a browser. Also published as an artifact:
   https://claude.ai/artifact/Fa2Duog6XLhoH8SdQLoLcD
+- **docs/reference/drain-data-2026-09-16.json** — the raw readings behind that page, kept so a
+  later model can be judged against the same baseline
 - **README.md** — for general users: plain language, no terminal commands
 - **docs/DEVELOPMENT.md** — build from source, terminal troubleshooting, diagnostic arguments
 - **CHANGELOG.md** — user-facing version history

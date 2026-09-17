@@ -139,10 +139,9 @@ no maximum capacity. Their registry entries carry only `BatteryPercent` and
 `BatteryStatusFlags`; the `CycleCount` and `MaxCapacity` found in the registry belong to the
 Mac's own `AppleSmartBattery`, which reads `BatteryInstalled = No` on this desktop. Wear would
 have to be inferred: habits are steady, so if the fitted percent-per-day creeps up over months,
-the battery holds less. Two obstacles before it is worth building: the history keeps only 200
-samples and forgets a device after 30 silent days, so months of rates are not retained; and a
-change of habit looks exactly like wear, with whole-percent readings hiding a 10–20% drift for a
-long time. A second weak signal is charge speed — a worn battery fills its smaller capacity
+the battery holds less. The storage obstacle is gone as of 2026-09-16 — the history is no longer
+trimmed, so months of rates now accumulate — but the hard one remains: a change of habit looks
+exactly like wear, and whole-percent readings hide a 10–20% drift for a long time. A second weak signal is charge speed — a worn battery fills its smaller capacity
 faster — but charger, cable and use during charging move it as much.
 
 ---

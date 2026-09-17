@@ -31,9 +31,15 @@ struct DrainHistory: Codable {
     /// segment means the device is on a cable and the next reading opens a new run.
     private(set) var segments: [String: [[Sample]]] = [:]
 
-    /// Samples kept per device across all segments. At about one crossing every three hours
-    /// for a mouse, 200 is several weeks of use — long enough to span weekdays and weekends.
-    static let capacity = 200
+    /// Samples kept per device across all segments.
+    ///
+    /// Effectively "keep everything": at about one crossing every three hours for a mouse this
+    /// is several years, and a sample costs roughly 40 bytes. It was 200 until 2026-09-16, which
+    /// held only a few weeks and would have discarded the start of the record while several
+    /// charge cycles were being collected to judge the model against. The valve stays because
+    /// `UserDefaults` is a preferences file, not a database, and unbounded growth there is how
+    /// one quietly becomes a problem.
+    static let capacity = 20_000
 
     /// A rise this large means a cable, not noise. Matches the alert rule's recharge threshold
     /// deliberately: two answers to "was that a charge?" in one app is a bug waiting to happen.

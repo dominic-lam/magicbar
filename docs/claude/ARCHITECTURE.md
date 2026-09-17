@@ -229,9 +229,12 @@ history, in `DrainHistory`. *Reworked 2026-09-13 so the rate survives a charge.*
 - **Percent, not mAh.** The registry exposes only `BatteryPercent` and `BatteryStatusFlags`
   (checked 2026-09-13) — no capacity, current or voltage. The gauge's percent already reflects
   an aged battery's real capacity, which a rated mAh figure would not.
-- **200 samples, forgotten after 30 silent days.** Several weeks of use for a mouse. A device
-  used to be forgotten the moment it left the registry while healthy, so a keyboard switched off
-  overnight lost its whole history.
+- **Keep everything; forget only after 30 silent days.** The per-device cap was 200 samples until
+  2026-09-16 — a few weeks, which would have discarded the start of the record while several
+  charge cycles were being collected to judge the model against. It is now 20,000, several years
+  at a mouse's rate and about 40 bytes a sample; the valve remains only because `UserDefaults` is
+  a preferences file rather than a database. A device used to be forgotten the moment it left the
+  registry while healthy, so a keyboard switched off overnight lost its whole history.
 - **Old saved data still loads.** The previous single `series` becomes one segment.
 - **Nothing is cached.** `fit` runs over the stored samples every time something asks for a
   number — each popover row while the popover is open, the daily reminder, `--dump-estimate`.
@@ -252,7 +255,7 @@ Output on 2026-09-13:
 | 1 busy day at 4%/day, then 3 quiet days | 0.8%/day | over a month left |
 | same, ignoring the quiet time | 4.0%/day | — |
 | a one-point rise mid-run | 1.8%/day | one segment kept |
-| 250 readings | — | 200 stored |
+| 250 readings | — | 250 stored (the cap is 20,000 since 2026-09-16) |
 | the pre-2026-09-13 saved format | — | read as 1 segment |
 
 **Known bias, not corrected:** right after a charge the reported level creeps up a point or two

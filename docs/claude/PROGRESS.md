@@ -54,6 +54,11 @@ Newest first, directly below the marker. Three-line format, one entry per sessio
 
 <!-- Append new entries here -->
 
+## 2026-09-16 (Session 7 — the estimate explained, published, and set up to be judged)
+**Completed:** Worked the drain estimate end to end and published it as a walkthrough with the real readings embedded — an artifact plus a copy in the repo — then extended it with what a charge does to the rate and with the same readings fitted from different starting points, which showed a 12-hour window claiming 20%/day and a 24-hour one 5%/day against the full history's 9%/day; documented that no rate is ever cached and what actually triggers a recompute; established from the registry that no battery-health reading exists for these peripherals and recorded wear-from-drain-trend as an idea; and removed the 200-sample history cap so several charge cycles survive for judging the model.
+**In progress:** The daily reminder is still unproven, the diagnostics still write to real app data, and no charge cycle has yet been recorded under the new uncapped storage.
+**Next session should:** Set the daily reminder hour to the next hour and confirm a real `evening reminder` line appears in the log.
+
 ## 2026-09-13 (Session 6 — an estimate that survives a charge, and 1.2.0 released)
 **Completed:** Added a GitHub link to the popover footer, guarded the documented install command after a hung `-showBuildSettings` left the build path empty and deleted the installed app, reworked the drain estimate so the rate is fitted across every run between charges with quiet time counted and a 24-hour floor (checked by a new `--check-estimate`, and the real saved history confirmed migrated), stopped tracking Affinity source files, released `v1.2.0` — download verified by checksum, signature and version, and the update check confirmed against a real release — and established that no battery-health reading is exposed, recording wear-from-drain-trend as an idea.
 **In progress:** The daily reminder is still unproven, the diagnostics still write to real app data, and the downloaded `v1.2.0` has not been opened past Gatekeeper.
