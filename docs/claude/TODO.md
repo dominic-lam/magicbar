@@ -47,21 +47,27 @@ Security. The release notes carry that instruction; do not quietly drop it.
 
 ## NEXT SESSION
 
-- [ ] **Confirm the daily reminder fires, and carries the estimate.** It has never fired: three
-      days of logs to 2026-09-12 hold no `evening reminder` line, although the hour was 23 and
-      the mouse sat below its warn level. The check only runs from the chosen hour until
-      midnight, so at 23 a Mac asleep for that one hour skips the day. Set the hour to the next
-      one and watch `log show --last 2h --predicate 'eventMessage CONTAINS "evening reminder"'`.
+- [ ] **Score the first recorded charge, then let the mouse run down from full without a top-up.**
+      The Magic Mouse went on the cable at 4% at 14:09 on 2026-09-18 and read 69% at 16:00, still
+      charging, with "about 1 hr 2 min to full" showing. The app has recorded it from 50% up
+      (`charges` in the saved `drainHistory`); 4% → 49% is in
+      `docs/reference/charge-curve-2026-09-18.txt`. Replay what the estimate said at each percent
+      against when 100% actually arrived, append 50% → 100% to that file, and confirm the taper:
+      steps were 1.55 min per 1% up to 49% and 2.5–3 min by 66–69%. The user agreed on 2026-09-18
+      to run the next discharge from full with no top-ups, which is the only way 100% → 41% is ever
+      recorded.
 - [ ] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
       `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
       Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
       `UserDefaults.standard`. `v1.2.0` shipped with this open; `docs/DEVELOPMENT.md` warns about
-      it. Isolate the diagnostics from `UserDefaults.standard`, then drop that warning.
-- [ ] **Open the downloaded `v1.2.0` past Gatekeeper.** Released 2026-09-13 at the user's call,
-      ahead of both items above. Already verified that day: checksum matches, version reads
-      1.2.0, ad-hoc signature valid, no `get-task-allow`, and `--check-updates` reports latest
-      1.2.0 with no update. Still unseen: the Open Anyway step on a downloaded copy, and its
-      footer reading `magicbar 1.2.0`.
+      it. Isolate the diagnostics from `UserDefaults.standard`, then drop that warning. Until then,
+      read the history with `defaults export` and replay it through `DrainHistory` compiled on its
+      own, as session 8 did.
+- [ ] **Open the downloaded `v1.2.0` past Gatekeeper.** Read back 2026-09-18: `gh release view
+      v1.2.0` reports published, not a draft, not a prerelease. Already verified 2026-09-13:
+      checksum, version 1.2.0, ad-hoc signature, no `get-task-allow`, `--check-updates` reports no
+      update. Unseen: the Open Anyway step on a downloaded copy, and its footer reading
+      `magicbar 1.2.0`. Needs the user's hands.
 
 ## Active
 
@@ -78,22 +84,17 @@ Security. The release notes carry that instruction; do not quietly drop it.
 - [ ] **The test button is gated behind developer mode**, which is where the one check a normal
       user needs is hardest to find.
       *Next action:* promote it, and decide whether the slider stays behind ⌥.
-- [ ] **Watch the drain estimate against reality.** Shipped 2026-09-09 and verified only
-      against synthetic series. In a week, compare what `--dump-estimate` says to what actually
-      happened. *Next action:* re-read it around 2026-09-16.
-      *2026-09-12:* it said "about 8 days" for the mouse at 0.156 %/h, while the mouse fell
-      35% → 30% over the preceding 16 hours — roughly 4 days' pace. The whole-window fit may lag
-      a drain that is speeding up.
-      *2026-09-13:* the rule was reworked — the rate now survives charges, needs 24 hours, and
-      counts quiet time up to now. The 2026-09-16 comparison tests the new rule, not the old.
 - [ ] **Snooze on the notification.** Raised by all four, but partly answered: unticking the 1%
       rule is now a standing "stop nagging me". A per-occasion snooze is still missing.
       *Next action:* decide whether the standing setting is enough.
 
-- [ ] **The daily reminder is now the only reminder tied to a moment.** The sleep reminder was
-      removed on 2026-09-09 — nothing can be delivered as the Mac sleeps, and wake is when a
-      Magic Mouse cannot be charged. That puts more weight on the daily hour being right.
-      *Next action:* pick an hour that is actually before the user stops for the night.
+- [ ] **The daily reminder fired; whether it was seen is unknown.** First firing on record:
+      2026-09-17 23:00:01, "evening reminder for Magic Mouse at 11% — about 33 hours left. Charge
+      it tonight", with no `reminder failed` line after it. The user was asked on 2026-09-18
+      whether a banner appeared and has not answered.
+      *Next action:* ask again. Then pick an hour that is actually before the user stops for the
+      night — it is still 23, and the check only runs from the chosen hour until midnight, so a
+      Mac asleep for that one hour skips the day.
 - [ ] **The evening reminder's "already sent today" is not persisted** (`lastEveningReminder`,
       `BatteryStore.swift`). Relaunching after the hour sends that day's reminder again.
       *Next action:* store it in `UserDefaults`, or accept it as harmless.
@@ -103,16 +104,29 @@ Security. The release notes carry that instruction; do not quietly drop it.
 
 ### The estimate model
 
-- [ ] **Judge the estimate against 3–5 full charge cycles, then decide whether a better model is
-      needed.** The user's acceptance criterion is a car's fuel-range gauge: *no sudden jumps.*
-      Today the level jump at a charge is the only discontinuity — the rate itself moves in small
-      steps — but that has never been watched through a real charge. The 200-sample cap was
-      removed on 2026-09-16 so the whole record survives.
-      *Next action:* wait for the cycles to accumulate; then re-export and compare fitted rate
-      against what actually happened, run by run. Method and the 2026-09-16 snapshot:
-      `docs/reference/drain-estimate-walkthrough.html` and
-      `docs/reference/drain-data-2026-09-16.json`; the page is also published at
-      https://claude.ai/artifact/Fa2Duog6XLhoH8SdQLoLcD and can be republished with fresh data.
+- [ ] **Judge the two drain estimates against each other over 3–5 cycles.** Since 2026-09-18 the
+      popover shows both under every device at every level — "about 2 days left" (the clock, one
+      least-squares rate) and "about 84 hours of use left" (median time per 1% while in use) — and
+      both are logged at each recorded change. The user's acceptance criterion is a car's
+      fuel-range gauge: *no sudden jumps.* The first real run showed the clock estimate smooth but
+      wrong by 14 hours on average, because daily use varied sixfold; seven alternative clock
+      models, Android's included, did no better than about a tenth. Findings: `ARCHITECTURE.md`, "What the first real
+      run showed". Baseline data and scripts: `docs/reference/estimate-backtest/`.
+      *Next action:* when the next run reaches 30%, rerun the band table (`analysis2.py`) and see
+      whether the fast 30–41% band repeats on a lighter day than the Monday it fell on.
+- [ ] **The drain runs about twice as fast below 10%, and neither estimate knows.** In-use drain
+      was 0.8–0.9 %/h between 10% and 30% and 1.9 %/h below 10%; "about 23 hours left" at 7% was
+      followed by 4% after 45 minutes of use. One run, five gaps. A stopgap — hide or halve the
+      hours below 10% — was offered on 2026-09-18 and the user chose to watch both estimates
+      unaltered first.
+      *Next action:* after a second run reaches single digits, decide between the stopgap and the
+      per-level correction recorded in `FEATURES.md`.
+- [ ] **`BatteryReader` logs a line every five seconds while anything charges.** It is how the
+      4% → 49% charge curve was recovered on 2026-09-18, and it may be why the system log reached
+      back only a day. Charges are now recorded in `drainHistory`, so the line has no job left.
+      *Next action:* log on change only. Raised with the user 2026-09-18, not yet answered.
+- [ ] **Set `MARKETING_VERSION` to the next tag before releasing.** The installed build carries
+      the two new estimates and still reads 1.2.0, the same as the published release.
 
 ### Launch
 
@@ -175,9 +189,10 @@ The diagnostics writing to real app data — see NEXT SESSION.
 - **The level creeps up a point or two just after a charge** (39 → 40 → 41, 2026-09-13). Those
   readings stay in the new segment and flatten the fitted rate slightly — optimistic. Worth
   correcting only if the 2026-09-16 comparison shows the estimate running long.
-- **Nothing has ever been recorded below 14%.** The straight-line fit assumes the reported percent
-  falls evenly, and a fuel gauge often bends near empty. The mouse is heading there now: at
-  2026-09-16 it sat at 14% with a fitted 9.0%/day. *When it reaches single digits,* export the
-  history and compare the last readings against the line — a bend means the estimate runs long
-  exactly when it matters. Method and a 2026-09-16 snapshot:
-  `docs/reference/drain-estimate-walkthrough.html`.
+- **A missing log line older than about a day proves nothing.** On 2026-09-18 a six-day
+  `log show` returned nothing before 23:00 the previous evening. The earlier "the reminder never
+  fired" finding was read while those days were still held, so it probably stands, but the same
+  search today could not have confirmed it.
+- **The charge estimate's first step after a mid-charge launch is short.** The app starts partway
+  through a percent and records it as if it had just begun — 15 seconds on 2026-09-18. The median
+  ignores one; it would matter only if most charges were watched from a relaunch.

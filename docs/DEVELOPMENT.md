@@ -96,8 +96,8 @@ you care about.
 | `--dump-label` | print the rendered menu bar image's size, template flag and colour sampling |
 | `--dump-cadence "12,9,8,9,7"` | walk a sequence of readings through the alert rule and print each decision |
 | `--dump-retention` | show which devices stay listed after they disconnect |
-| `--dump-estimate` | print each device's drain segments and its "days left" estimate |
-| `--check-estimate` | run the estimate rule on synthetic drains, charges and quiet days — touches no saved data |
+| `--dump-estimate` | print each device's drain segments, charge runs, and all three estimates |
+| `--check-estimate` | run the clock, hours-of-use and time-to-full rules on synthetic drains, charges and quiet days — touches no saved data |
 | `--test-notification` | once permission resolves, send the same test notification as the popover button |
 | `--check-updates` | print the version comparisons, ask GitHub for the latest release, and exit — makes one real request |
 | `--simulate-update 1.3.0` | show the "Version … available" footer without touching the network |

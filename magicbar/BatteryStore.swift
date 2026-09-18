@@ -365,6 +365,14 @@ final class BatteryStore: ObservableObject {
         if changed {
             drain.save()
             NSLog("%@", "[magicbar] drain history: \(drain.sampleCounts)")
+            // Both estimates at every recorded change, so they can be judged against what
+            // happened next without anyone having had the popover open at the time.
+            for device in devices where !device.isStale {
+                let says = device.isCharging
+                    ? chargeEstimate(for: device) ?? "none"
+                    : "\(estimate(for: device) ?? "none") | \(useEstimate(for: device) ?? "none")"
+                NSLog("%@", "[magicbar] estimates for \(device.shortName) at \(device.percent)%: \(says)")
+            }
         }
 
         for device in devices where !device.isStale { evaluateNotification(for: device) }
@@ -378,6 +386,19 @@ final class BatteryStore: ObservableObject {
     func estimate(for device: Device) -> String? {
         guard !device.isCharging, !device.isStale else { return nil }
         return drain.phrase(id: device.id, percent: device.percent)
+    }
+
+    /// "about 40 minutes to full", or nil until a few percent of charging have been watched.
+    func chargeEstimate(for device: Device) -> String? {
+        guard device.isCharging, !device.isStale else { return nil }
+        return drain.chargePhrase(id: device.id, percent: device.percent)
+    }
+
+    /// "about 5 hours of use left", or nil for a device with too few in-use steps on record.
+    /// Shown beside the clock estimate at every level, so the two can be watched against each other.
+    func useEstimate(for device: Device) -> String? {
+        guard !device.isCharging, !device.isStale else { return nil }
+        return drain.usePhrase(id: device.id, percent: device.percent)
     }
 
     /// The stored series and what it currently implies, for `--dump-estimate`.
@@ -395,6 +416,11 @@ final class BatteryStore: ObservableObject {
             lines.append("  rate:    " + (fit.rate.map { String(format: "%.3f %%/h, %.1f %%/day", $0, $0 * 24) }
                                           ?? "not enough data"))
             lines.append("  says:    " + (live.flatMap { drain.phrase(id: id, percent: $0.percent) } ?? "nothing yet"))
+            lines.append("  in use:  " + (drain.useHoursPerPercent(id: id).map { String(format: "%.2f h per 1%%", $0) } ?? "not enough in-use steps")
+                         + (live.flatMap { drain.usePhrase(id: id, percent: $0.percent) }.map { " — \($0)" } ?? ""))
+            let runs = drain.charges[id] ?? []
+            lines.append("  charge:  \(runs.count) run(s), \(runs.reduce(0) { $0 + $1.count }) samples"
+                         + (devices.first(where: { $0.id == id && $0.isCharging }).flatMap { chargeEstimate(for: $0) }.map { " — \($0)" } ?? ""))
             for (index, segment) in list.enumerated() where !segment.isEmpty {
                 lines.append("  segment \(index + 1): \(segment.count) samples")
                 for sample in segment.suffix(6) {

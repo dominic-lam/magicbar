@@ -19,6 +19,8 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
 | Homebrew tap | Idea | Decide whether one extra repo is worth it |
 | Battery wear from the drain-rate trend | Idea | Needs months of kept rates first |
+| Per-level drain correction | Idea | Needs 3–5 recorded cycles to separate battery from habit |
+| Measure device use directly | Idea | Confirm the idle-time call needs no permission |
 
 ---
 
@@ -39,6 +41,23 @@ says something the menu bar does not. One least-squares rate fitted across every
 charges, because use habits outlast a battery: a top-up no longer blanks the estimate. Quiet
 time up to now counts, and nothing is shown until a full day of history exists.
 `--check-estimate` runs the rule on synthetic cases; detail in `ARCHITECTURE.md`.
+
+### Use estimate — 2026-09-18, unreleased
+
+"About 84 hours of use left", shown under the clock estimate at every level so the two can be
+judged against each other. The median time per 1% drop, over drops under 1.5 hours apart — the
+ones quick enough to have been continuous use. Added because the first real run showed the clock
+estimate limited by a sixfold swing in daily use that no model could predict, while drain per
+hour of use held within about 2×. A keyboard never qualifies. Both estimates are logged at every
+recorded change. Detail in `ARCHITECTURE.md`.
+
+### Charge estimate — 2026-09-18, unreleased
+
+"About 1 hr 3 min to full" while on the cable. Charges are recorded as their own runs (the last
+ten kept), and each remaining percent costs the median it cost on earlier charges, falling back
+to the median of all steps for a level never seen — so the first charge reads as a straight line
+and runs optimistic, and later ones know the taper. To the minute, unlike the drain phrases. Not
+yet scored against a completed charge.
 
 ### Sleep reminder — built and removed, 2026-09-09
 
@@ -131,6 +150,23 @@ and updates through `brew upgrade`, with the release workflow bumping the cask o
 would not remove the Gatekeeper step. The official `homebrew-cask` is closed to this app twice
 over: casks failing Gatekeeper lose support from 2026-09-01, and a self-submitted cask needs
 225 stars, 90 forks and 90 watchers (checked 2026-09-12 against Homebrew's docs).
+
+### Per-level drain correction
+
+The first real run drained about twice as fast in use below 10% and above 30% as in between,
+which is what a voltage-derived gauge with an imperfect table would produce. A small table of how
+long each percent takes relative to the average — learned slowly across cycles, separate from the
+fast-moving rate — would stop the estimates running optimistic near empty. One run cannot separate
+the battery from the week it happened in: the fast top band fell on the heaviest day. The charge
+estimate already works this way, because a charge is repeatable.
+
+### Measure device use directly
+
+The use estimate infers "in use" from gaps between readings. macOS reports seconds since the last
+mouse movement (`CGEventSource.secondsSinceLastEventType`), believed to need no permission —
+unchecked. Logging active hours would give percent per hour of use directly, and a time-of-day
+pattern at five-second rather than one-percent resolution. It counts any pointing device, so a
+trackpad would muddy it.
 
 ### Battery wear from the drain-rate trend
 

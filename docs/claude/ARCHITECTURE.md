@@ -106,7 +106,8 @@ One notification answers *when* rather than *what*, and it does not go through t
 the level has not changed, the opportunity has. It fires only if something is below the warn
 level, and it neither consumes nor is suppressed by the ordinary cadence.
 
-- **Daily, at a chosen hour.** Checked on the ordinary poll against the wall clock rather than
+- **Daily, at a chosen hour.** *First seen firing 2026-09-17 23:00:01, carrying the estimate;
+  whether the banner was seen is unconfirmed.* Checked on the ordinary poll against the wall clock rather than
   by its own timer: a timer that must survive sleep, clock changes and time zones is a whole
   mechanism, where a comparison is correct by construction. Fires once per day, and carries the
   drain estimate so it says something the menu bar does not already say.
@@ -255,6 +256,9 @@ Output on 2026-09-13:
 | 1 busy day at 4%/day, then 3 quiet days | 0.8%/day | over a month left |
 | same, ignoring the quiet time | 4.0%/day | — |
 | a one-point rise mid-run | 1.8%/day | one segment kept |
+| 3 sittings a day at 0.8 h per 1%, at 33% *(2026-09-18)* | 9.3%/day | about 4 days left · about 26 hours of use left |
+| first charge, at 40%, true time 140 min *(2026-09-18)* | — | about 1 hr 30 min to full |
+| second charge, same point *(2026-09-18)* | — | about 2 hr 20 min to full |
 | 250 readings | — | 250 stored (the cap is 20,000 since 2026-09-16) |
 | the pre-2026-09-13 saved format | — | read as 1 segment |
 
@@ -264,6 +268,74 @@ new segment and flatten its slope a little, which reads optimistic.
 
 `--dump-estimate` prints the stored segments and the live fit. It builds a real store on the
 real saved data; see the diagnostics warning under Testing.
+
+### What the first real run showed *(2026-09-18)*
+
+The first complete run — Magic Mouse, 41% → 4%, 2026-09-13 to 09-18, 42 readings — was replayed
+through `DrainHistory` compiled on its own against a `defaults export` of the saved history, so
+no diagnostic touched real data. The replay reproduced the real 23:00 reminder exactly ("about 33
+hours left" at 11%). Data and scripts: `docs/reference/estimate-backtest/`.
+
+- **The countdown is smooth and the finish line is not.** Hours left fell at almost every reading,
+  55 down to 23, but "empty at" slid from Thursday 03:24 to Saturday 10:51. The rate fell from
+  11.8 to 7.3 %/day and had not levelled off after four days.
+- **A quiet device stalls it.** At 03:33 it said 25 hours; eight idle hours later, 23. Every hour
+  is treated as an average hour, and whole-percent readings cannot show that use has stopped
+  until a percent fails to drop.
+- **No clock model did better.** Walking forward hour by hour, each model given only what it would
+  have known, scored on when each later level was reached (1,083 predictions):
+
+  | Model | Mean error | Bias | Biggest hour-to-hour jump |
+  |---|---|---|---|
+  | least squares, all history (shipped) | 14.3 h | −13.3 h | 5.3 h |
+  | Android: mean time per 1% step | 16.2 h | −15.4 h | 6.1 h |
+  | Android, last 10 steps | 15.3 h | −13.2 h | 14.1 h |
+  | drop over the last 24 h | 15.2 h | −5.8 h | — (worst miss 157 h) |
+
+  Windowed fits and time-of-day profiles, scored on the run to 7%, gained at most 12%. The
+  shipped fit wins because of the `now` point: Android learns only when a percent drops. On the
+  steady keyboard Android's rule was better (5.7 h against 9.0 h), partly by staying silent longer.
+- **The error is the owner's week.** Use per day: 10.8%, 8.4%, 5.8%, 1.7%. The mouse lasted a
+  median 1.8× longer than predicted. A short window reacts and jumps — the 24-hour rate believed
+  1 %/day on the quiet Thursday night, hours before a 4% session; a long one is smooth and late.
+- **Drain per hour of use is the steadier quantity.** 22 of 38 one-percent gaps were under 1.5
+  hours, the rest 2.6 to 16. By day the in-use rate ran 0.8–1.5 %/h, about 2× against 6×.
+- **It is not linear in level.** In-use drain by band: 1.7 %/h at 30–41%, 0.9 at 20–30%, 0.8 at
+  10–20%, 1.9 below 10%. Consistent with a voltage-derived gauge, as is the post-charge creep;
+  confounded, because the top band fell on the heaviest day. Nothing above 41% has been recorded.
+- **Linear is the norm at this layer.** Android 9's `computeTimePerLevel` is "a simple average
+  across all steps"; the curve is dealt with inside the fuel gauge, whose job is to make percent
+  linear in charge. The effort elsewhere goes into modelling use, not the cell.
+
+### The use estimate *(2026-09-18)*
+
+"About 84 hours of use left", shown under the clock estimate at every level.
+`useHoursPerPercent` is the median time per one-percent drop over drops at most `useGap` (1.5
+hours) apart, across all segments, needing `minimumUseSteps` (5). A multi-point drop is split
+evenly. The median, so a step that straddles a break does not move it. It is the car's range in
+kilometres: it holds still while the device is idle, which the clock estimate cannot. On the first
+run it predicted four unbroken stretches of use within +28%, −36%, −27% and +43% — no better than
+the clock estimate's typical miss, but unbiased and without its tail (−75% to +617% on the same
+size of drop). A keyboard never has an in-use step and shows nothing. Both estimates are logged
+at each recorded change: `[magicbar] estimates for <name> at <n>%: <clock> | <use>`.
+
+### The charge estimate *(2026-09-18)*
+
+"About 1 hr 3 min to full". `record` used to ignore a charging device beyond closing its
+discharge segment; it now opens a run in `charges` at that moment and appends each change, keeping
+the last `chargeRunsKept` (10). A launch mid-charge finds the segment already closed and carries
+on the open run. `chargeMinutesRemaining` sums, for each percent still to go, the median time that
+percent took on earlier charges, falling back to the median of every step where a level has never
+been seen; steps over `chargeStepLimit` (20 minutes a percent) are a loose cable or a full cell and
+are dropped. Time already spent in the current percent is subtracted, so the number counts down
+between readings, which arrive about once a minute.
+
+Per level here and not for the drain, because a charge is repeatable — same cable, same cell, and
+a Magic Mouse cannot be used while charging — so the curve belongs to the battery alone. The first
+charge has no data for the top and reads as a straight line: on 2026-09-18 the steps were 1.55
+minutes per percent from 4% to 49% and 2.5–3 by 66–69%, and the estimate hovered near one hour for
+half an hour as the taper arrived. To the minute, unlike the drain phrases, because it is being
+watched against the clock. Unscored at the time of writing: the mouse was at 69%.
 
 ---
 

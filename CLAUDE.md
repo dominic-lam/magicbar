@@ -33,6 +33,10 @@ Rewritten from a bash implementation on 2026-09-08; that version is preserved at
   https://claude.ai/artifact/Fa2Duog6XLhoH8SdQLoLcD
 - **docs/reference/drain-data-2026-09-16.json** — the raw readings behind that page, kept so a
   later model can be judged against the same baseline
+- **docs/reference/estimate-backtest/** — the first complete real run (41% → 4%) and the scripts
+  that scored eight candidate models against it on 2026-09-18
+- **docs/reference/charge-curve-2026-09-18.txt** — the first charge, 4% → 49%, recovered from the
+  system log before the app recorded charges
 - **README.md** — for general users: plain language, no terminal commands
 - **docs/DEVELOPMENT.md** — build from source, terminal troubleshooting, diagnostic arguments
 - **CHANGELOG.md** — user-facing version history
@@ -185,7 +189,7 @@ MagicbarApp.swift      @main, the MenuBarExtra scene, diagnostic launch argument
 BatteryReader.swift    IORegistry enumeration + the --simulate injection point
 Device.swift           model, identity, icon mapping, display name
 BatteryStore.swift     poll timer, thresholds, low-water marks, colour
-DrainHistory.swift     sampled readings and the "about 3 days left" fit
+DrainHistory.swift     drain segments, charge runs, and the three estimates built on them
 Notifier.swift         UNUserNotificationCenter, guarded against a missing bundle
 MenuBarRenderer.swift  NSImage composition for both label states
 LoginItem.swift        SMAppService registration
@@ -197,7 +201,7 @@ PopoverView.swift      device rows, threshold steppers, login toggle, Quit
 
 ---
 
-## Current State (2026-09-13)
+## Current State (2026-09-18)
 
 Built, installed at `/Applications/magicbar.app`, running, registered as a login item, and
 allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen of their 37
@@ -219,10 +223,18 @@ Open in `TODO.md` — do not run it against the installed app until fixed.
 **The sleep reminder was removed.** It could not be delivered as the Mac sleeps — the display
 and the audio device are both already off by the time the app is told, measured twice — and
 delivering it at wake instead lands on the one moment a Magic Mouse cannot be charged. The
-daily reminder at a chosen hour is now the only reminder tied to a moment, and it is
-**unverified** — wired, never fired.
+daily reminder at a chosen hour is now the only reminder tied to a moment. It first fired on
+2026-09-17 at 23:00 with the estimate in it; whether the banner was seen is unconfirmed.
 
 **The drain estimate was reworked 2026-09-13.** The rate survives a charge, quiet time counts,
 and nothing shows under 24 hours of history. `--check-estimate` covers it with synthetic cases
-and touches no saved data; it has not yet been seen through a real charge. See
-`docs/claude/ARCHITECTURE.md`.
+and touches no saved data. See `docs/claude/ARCHITECTURE.md`.
+
+**Three estimates since 2026-09-18, and the clock one is not to be "fixed" with a better curve.**
+It was backtested on the first complete real run against seven alternatives, Android's step
+averaging included, and none beat it by more than about a tenth: the error is a sixfold swing in daily
+use, not the fit. "Hours of use left" now shows beside it at every level, at the user's request,
+so the two can be judged over several cycles; a device on the cable shows time to full, learned
+per level from recorded charges. **To read the saved history, use `defaults export` and replay it
+through `DrainHistory.swift` compiled on its own** — never a `--dump-*` argument, while the
+diagnostics bug is open.

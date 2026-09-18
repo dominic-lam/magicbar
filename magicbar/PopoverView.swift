@@ -48,7 +48,9 @@ struct PopoverView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(store.devices) { device in
                             DeviceRow(device: device, color: store.color(for: device.percent),
-                                      estimate: store.estimate(for: device))
+                                      estimate: device.isCharging ? store.chargeEstimate(for: device)
+                                                                  : store.estimate(for: device),
+                                      useEstimate: store.useEstimate(for: device))
                         }
                     }
                     // Sits under the readings it describes. In the footer, "Updates live"
@@ -147,8 +149,11 @@ struct PopoverView: View {
 private struct DeviceRow: View {
     let device: Device
     let color: Color
-    /// "about 3 days left", or nil while there is not enough history to say.
+    /// "about 3 days left" — or "about 40 minutes to full" on a cable — or nil while there is
+    /// not enough history to say.
     let estimate: String?
+    /// "about 5 hours of use left", or nil for a device never seen draining while in use.
+    let useEstimate: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -199,6 +204,11 @@ private struct DeviceRow: View {
             // fresh install. A row with no estimate is the normal early state, not a fault.
             if let estimate {
                 Text(estimate)
+                    .font(PopoverView.rowFont)
+                    .foregroundStyle(.secondary)
+            }
+            if let useEstimate {
+                Text(useEstimate)
                     .font(PopoverView.rowFont)
                     .foregroundStyle(.secondary)
             }

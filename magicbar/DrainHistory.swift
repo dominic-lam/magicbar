@@ -17,6 +17,20 @@ import Foundation
 /// quiet weekend with no change counts as a weekend that used nothing. Without it the fit
 /// behaves as if the clock stopped at the last change, and overstates the drain.
 ///
+/// **Two estimates, deliberately.** The clock estimate above depends on when the owner next sits
+/// down, which varied sixfold day to day in the first real run (2026-09-13 to 09-18). The
+/// use estimate — "about 5 hours of use left" — depends only on how fast the device drains
+/// while it is being used, which is a property of the hardware. It is a car's range in
+/// kilometres rather than a guess at when the tank runs dry: it does not tick down while parked.
+/// Both are shown so they can be judged against each other over several charge cycles.
+///
+/// **Charging is recorded too, separately.** Each charge is kept as its own run of rising
+/// readings, and "about 40 minutes to full" is the sum of how long each remaining percent took
+/// on earlier charges. Per level, unlike the drain, because a charge is repeatable — same
+/// cable, same cell, nobody's week in the way — and it is not a straight line: lithium-ion
+/// charges at a steady rate and then tapers near the top. Levels never yet seen charging fall
+/// back to the median step, so the first charge reads as a straight line and runs optimistic.
+///
 /// **Absence is not a reading.** A vanished or stale device records nothing. A sleeping mouse is
 /// not a mouse draining to zero, and a gap between samples is still time on the clock.
 struct DrainHistory: Codable {
@@ -30,6 +44,9 @@ struct DrainHistory: Codable {
     /// else that must survive a device moving between Bluetooth and USB. A trailing empty
     /// segment means the device is on a cable and the next reading opens a new run.
     private(set) var segments: [String: [[Sample]]] = [:]
+
+    /// Charge runs per device, oldest first: the rising readings of each time on the cable.
+    private(set) var charges: [String: [[Sample]]] = [:]
 
     /// Samples kept per device across all segments.
     ///
@@ -50,6 +67,18 @@ struct DrainHistory: Codable {
     static let minimumSamples = 3
     static let minimumSpan: TimeInterval = 24 * 3600
 
+    /// A one-percent drop this quick means the device was in use the whole time. In the first
+    /// real run the gaps split cleanly: 22 of 38 under 1.5 hours, the rest from 2.6 to 16.
+    static let useGap: TimeInterval = 1.5 * 3600
+    static let minimumUseSteps = 5
+
+    /// A charge is about a hundred samples, and the curve only changes as the cell ages.
+    static let chargeRunsKept = 10
+    static let minimumChargeSteps = 5
+    /// A percent that took longer than this was not gained by charging — a loose cable, or a
+    /// full cell sitting on the charger.
+    static let chargeStepLimit: TimeInterval = 20 * 60
+
     /// A device not heard from in this long is forgotten — no longer paired, or in a drawer.
     static let forgetAfter: TimeInterval = 30 * 24 * 3600
 
@@ -58,12 +87,25 @@ struct DrainHistory: Codable {
     mutating func record(id: String, percent: Int, isCharging: Bool, at now: Date = .now) -> Bool {
         var list = segments[id] ?? []
 
-        // A device on a cable is not draining. Close the open segment once, on the way in.
+        // A device on a cable is not draining. Close the open segment once, on the way in,
+        // and open a charge run with it. A launch mid-charge finds the segment already closed
+        // and carries on the run it was in.
         if isCharging {
-            guard let open = list.last, !open.isEmpty else { return false }
-            list.append([])
-            store(list, for: id)
-            return true
+            var runs = charges[id] ?? []
+            var changed = false
+            if let open = list.last, !open.isEmpty {
+                list.append([])
+                store(list, for: id)
+                runs.append([])
+                changed = true
+            }
+            if runs.isEmpty { runs = [[]] }
+            if runs[runs.count - 1].last?.percent != percent {
+                runs[runs.count - 1].append(Sample(at: now, percent: percent))
+                changed = true
+            }
+            charges[id] = Array(runs.suffix(Self.chargeRunsKept))
+            return changed
         }
 
         if let last = list.last?.last {
@@ -104,7 +146,7 @@ struct DrainHistory: Codable {
             guard let newest = list.last(where: { !$0.isEmpty })?.last?.at else { return id }
             return now.timeIntervalSince(newest) > Self.forgetAfter ? id : nil
         }
-        unseen.forEach { segments[$0] = nil }
+        unseen.forEach { segments[$0] = nil; charges[$0] = nil }
         return !unseen.isEmpty
     }
 
@@ -174,11 +216,84 @@ struct DrainHistory: Codable {
         default: return "over a month left"
         }
     }
+
+    /// Minutes until full, or nil without enough charging on record.
+    ///
+    /// Each remaining percent costs what it cost on earlier charges — the median for that level —
+    /// or the median of every step where that level has never been seen. Time already spent in
+    /// the current percent is taken off, so the number counts down between readings.
+    func chargeMinutesRemaining(id: String, percent: Int, now: Date = .now) -> Double? {
+        guard percent < 100 else { return nil }
+        var byLevel: [Int: [Double]] = [:]
+        var all: [Double] = []
+        for run in charges[id] ?? [] {
+            for (earlier, later) in zip(run, run.dropFirst()) {
+                let rise = later.percent - earlier.percent
+                guard rise >= 1 else { continue }
+                let each = later.at.timeIntervalSince(earlier.at) / Double(rise)
+                guard each <= Self.chargeStepLimit else { continue }
+                for level in earlier.percent..<later.percent { byLevel[level, default: []].append(each / 60) }
+                all.append(contentsOf: Array(repeating: each / 60, count: rise))
+            }
+        }
+        guard all.count >= Self.minimumChargeSteps else { return nil }
+        let typical = Self.median(all)
+        var minutes = (percent..<100).reduce(0.0) { $0 + (byLevel[$1].map(Self.median) ?? typical) }
+        if let last = charges[id]?.last?.last, last.percent == percent, now > last.at {
+            let thisLevel = byLevel[percent].map(Self.median) ?? typical
+            minutes -= min(now.timeIntervalSince(last.at) / 60, thisLevel)
+        }
+        return minutes
+    }
+
+    /// The charge estimate as a phrase, or nil.
+    func chargePhrase(id: String, percent: Int, now: Date = .now) -> String? {
+        guard let minutes = chargeMinutesRemaining(id: id, percent: percent, now: now) else { return nil }
+        // To the minute, unlike the drain phrases: a charge is an hour or two and repeatable, and
+        // the number is being watched against the clock to judge the model.
+        let whole = max(1, Int(minutes.rounded()))
+        if whole < 60 { return "about \(whole) min to full" }
+        return whole % 60 == 0 ? "about \(whole / 60) hr to full" : "about \(whole / 60) hr \(whole % 60) min to full"
+    }
+
+    private static func median(_ values: [Double]) -> Double {
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+        return sorted.count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
+    }
+
+    /// Hours of continuous use that one percent lasts, or nil without enough in-use steps.
+    ///
+    /// The median time per one-percent drop, over drops quick enough to have been continuous
+    /// use. Android estimates the same way — the average time per battery level step — but
+    /// averages every step; keeping only the in-use ones is what makes this a measure of the
+    /// hardware instead of the owner's week. The median, because one step that straddles a
+    /// coffee break should not move it. A keyboard never qualifies: its drops are a day apart.
+    func useHoursPerPercent(id: String) -> Double? {
+        var steps: [Double] = []
+        for segment in segments[id] ?? [] {
+            for (earlier, later) in zip(segment, segment.dropFirst()) {
+                let drop = earlier.percent - later.percent
+                guard drop >= 1 else { continue }
+                let each = later.at.timeIntervalSince(earlier.at) / Double(drop)
+                if each <= Self.useGap { steps.append(contentsOf: Array(repeating: each / 3600, count: drop)) }
+            }
+        }
+        guard steps.count >= Self.minimumUseSteps else { return nil }
+        return Self.median(steps)
+    }
+
+    /// The use estimate as a phrase, or nil.
+    func usePhrase(id: String, percent: Int) -> String? {
+        guard let perPercent = useHoursPerPercent(id: id) else { return nil }
+        let hours = Double(percent) * perPercent
+        return hours < 1 ? "under an hour of use left" : "about \(Int(hours.rounded())) hours of use left"
+    }
 }
 
 extension DrainHistory {
 
-    private enum CodingKeys: String, CodingKey { case segments, series }
+    private enum CodingKeys: String, CodingKey { case segments, series, charges }
 
     /// Reads both formats. Before 2026-09-13 a charge deleted the curve, so the old `series`
     /// held exactly one run per device and becomes a single segment.
@@ -190,11 +305,13 @@ extension DrainHistory {
             let series = try container.decodeIfPresent([String: [Sample]].self, forKey: .series) ?? [:]
             self.segments = series.mapValues { [$0] }
         }
+        self.charges = try container.decodeIfPresent([String: [[Sample]]].self, forKey: .charges) ?? [:]
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(segments, forKey: .segments)
+        try container.encode(charges, forKey: .charges)
     }
 
     private static let defaultsKey = "drainHistory"
@@ -234,7 +351,8 @@ extension DrainHistory {
             let fit = history.fit(id: "d", percent: percent, now: at(hours))
             let rate = fit.rate.map { String(format: "%.1f%%/day", $0 * 24) } ?? "no rate"
             let says = history.phrase(id: "d", percent: percent, now: at(hours)) ?? "nothing"
-            lines.append("\(label.padding(toLength: 44, withPad: " ", startingAt: 0))\(rate.padding(toLength: 12, withPad: " ", startingAt: 0))\(says)")
+            let use = history.usePhrase(id: "d", percent: percent) ?? "nothing"
+            lines.append("\(label.padding(toLength: 44, withPad: " ", startingAt: 0))\(rate.padding(toLength: 12, withPad: " ", startingAt: 0))\(says.padding(toLength: 22, withPad: " ", startingAt: 0))\(use)")
         }
 
         // 4% a day: one percent every six hours, 60% down to 48% over three days.
@@ -264,6 +382,45 @@ extension DrainHistory {
         }
         report("one-point wobble mid-run", wobble, percent: 47, now: 40)
         lines.append("  segments after the wobble:               \(wobble.segments["d"]?.count ?? 0)")
+
+        // Three sittings a day of 48 minutes per percent, idle between them. The clock estimate
+        // averages the idle time in; the use estimate must see only the 0.8 hours.
+        var sittings = DrainHistory()
+        var level = 60
+        for day in 0..<3 {
+            for sitting in [9.0, 14.0, 20.0] {
+                for step in 0..<3 {
+                    sittings.record(id: "d", percent: level, isCharging: false,
+                                    at: at(Double(day) * 24 + sitting + Double(step) * 0.8))
+                    level -= 1
+                }
+            }
+        }
+        report("3 sittings a day at 0.8h per 1%, at 33%", sittings, percent: 33, now: 72)
+        lines.append("  hours of use per 1%:                     \(sittings.useHoursPerPercent(id: "d").map { String(format: "%.2f", $0) } ?? "nil")")
+
+        // A charge that tapers: 1.5 minutes a percent to 80%, then 4. The first time through, the
+        // top has never been seen and reads as a straight line; the second time it is known.
+        var charging = DrainHistory()
+        func charge(from start: Int, startingAtHour hour: Double) {
+            var minutes = 0.0
+            for p in start...100 {
+                charging.record(id: "d", percent: p, isCharging: true, at: at(hour + minutes / 60))
+                minutes += p < 80 ? 1.5 : 4
+            }
+        }
+        charging.record(id: "d", percent: 10, isCharging: false, at: at(0))
+        charging.record(id: "d", percent: 10, isCharging: true, at: at(1))
+        for p in 11...40 { charging.record(id: "d", percent: p, isCharging: true, at: at(1 + Double(p - 10) * 1.5 / 60)) }
+        lines.append("first charge, at 40% (truth 140 min):      \(charging.chargePhrase(id: "d", percent: 40, now: at(1.75)) ?? "nothing")")
+        charging = DrainHistory()
+        charging.record(id: "d", percent: 10, isCharging: false, at: at(0))
+        charge(from: 10, startingAtHour: 1)
+        charging.record(id: "d", percent: 30, isCharging: false, at: at(50))
+        charge(from: 30, startingAtHour: 51)
+        let replug = charging.charges["d"]?.last?.first(where: { $0.percent == 40 })?.at ?? at(51)
+        lines.append("second charge, at 40% (truth 140 min):     \(charging.chargePhrase(id: "d", percent: 40, now: replug) ?? "nothing")")
+        lines.append("  charge runs kept:                        \(charging.charges["d"]?.count ?? 0)")
 
         var capped = DrainHistory()
         for i in 0..<250 { capped.record(id: "d", percent: 250 - i, isCharging: false, at: at(Double(i))) }

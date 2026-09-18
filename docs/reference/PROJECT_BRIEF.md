@@ -20,10 +20,16 @@ triaged in `docs/claude/debriefs/2026-09-08-design-review.md`.
 
 **The sleep reminder was removed 2026-09-09** — it could not be delivered while the Mac is
 sleeping, measured twice (see `ARCHITECTURE.md`). The daily reminder now carries a drain
-estimate ("about three days left") instead. **The daily reminder is unverified** — it has never
-fired (logs checked 2026-09-12). The estimate was reworked 2026-09-13 — one rate across every
-run between charges, quiet time counted, a 24-hour floor — and checked by `--check-estimate`,
-but not yet against a real charge.
+estimate ("about three days left") instead. **The daily reminder fired for the first time on
+2026-09-17 at 23:00**, carrying "about 33 hours left"; whether the banner was seen is unconfirmed.
+The estimate was reworked 2026-09-13 — one rate across every run between charges, quiet time
+counted, a 24-hour floor.
+
+**Three estimates since 2026-09-18, the newer two unreleased.** The clock estimate was judged on
+the first complete real run and found smooth but 14 hours off on average, because daily use
+varied sixfold; no alternative did better. So a second line now shows hours of use left, and a
+device on the cable shows time to full, learned per level from recorded charges. The first
+recorded charge was still under way at the end of that session.
 
 **Distribution works.** Open source only, no paid developer account. GitHub Actions build the
 app on every push and publish an ad-hoc-signed zip on a `v*` tag. `v1.2.0` was published
@@ -40,7 +46,7 @@ IORegistry (AppleDeviceManagementHIDEventService, HasBattery)
           → BatteryStore  5s poll + IOKit change events · levels · low-water marks
               → MenuBarRenderer  idle glyph, or the alert in one of two styles
               → Notifier         coarse and fine rules, plus a daily reminder
-              → DrainHistory     sampled readings behind "about three days left"
+              → DrainHistory     drain segments and charge runs behind all three estimates
 UpdateChecker  GitHub latest release, at launch + daily + "Check now" → footer link
 ```
 
@@ -53,7 +59,7 @@ UpdateChecker  GitHub latest release, at launch + daily + "Check now" → footer
 | `magicbar/MenuBarRenderer.swift` | both label states and both alert styles |
 | `magicbar/RangeSlider.swift` | the two-handle level slider |
 | `magicbar/Notifier.swift` | authorization and delivery, with the bundle guard |
-| `magicbar/DrainHistory.swift` | the sampled series and the "about 3 days left" fit |
+| `magicbar/DrainHistory.swift` | drain segments, charge runs, and the clock, use and time-to-full estimates |
 | `magicbar/UpdateChecker.swift` | the update check — the app's only network access |
 | `docs/claude/ARCHITECTURE.md` | why each of the above is shaped that way |
 | `docs/DEVELOPMENT.md` | build, terminal troubleshooting, every launch argument |

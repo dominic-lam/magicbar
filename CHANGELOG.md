@@ -7,6 +7,16 @@ Internal session history is in `docs/claude/PROGRESS.md`.
 
 ## [Unreleased]
 
+### Added
+- **A second estimate, in hours of use** — "about 84 hours of use left" under the existing
+  "about 2 days left". The first guesses when the battery runs out, which depends on how much you
+  use the device that day; the second says how much use is left, like a car's range, and does not
+  tick down while the device sits idle. A keyboard shows only the first: it drains too slowly to
+  measure in use.
+- **Time to full while charging** — "about 1 hr 3 min to full". It learns how long each percent
+  takes on your own charges, so from the second charge on it knows that the last stretch is
+  slower. The first charge reads a little optimistic.
+
 ### Changed
 - **The battery history is no longer trimmed.** magicbar used to keep the last 200 readings per
   device — a few weeks — and quietly drop the oldest. It now keeps them all, so the record spans
