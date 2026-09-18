@@ -88,13 +88,11 @@ Security. The release notes carry that instruction; do not quietly drop it.
       rule is now a standing "stop nagging me". A per-occasion snooze is still missing.
       *Next action:* decide whether the standing setting is enough.
 
-- [ ] **The daily reminder fired; whether it was seen is unknown.** First firing on record:
-      2026-09-17 23:00:01, "evening reminder for Magic Mouse at 11% — about 33 hours left. Charge
-      it tonight", with no `reminder failed` line after it. The user was asked on 2026-09-18
-      whether a banner appeared and has not answered.
-      *Next action:* ask again. Then pick an hour that is actually before the user stops for the
-      night — it is still 23, and the check only runs from the chosen hour until midnight, so a
-      Mac asleep for that one hour skips the day.
+- [ ] **The daily reminder works; its hour is still 23.** It fired on 2026-09-17 at 23:00:01 with
+      "about 33 hours left. Charge it tonight", and the user confirmed on 2026-09-18 that they saw
+      it. The check only runs from the chosen hour until midnight, so a Mac asleep for that one
+      hour skips the day.
+      *Next action:* pick an hour that is actually before the user stops for the night.
 - [ ] **The evening reminder's "already sent today" is not persisted** (`lastEveningReminder`,
       `BatteryStore.swift`). Relaunching after the hour sends that day's reminder again.
       *Next action:* store it in `UserDefaults`, or accept it as harmless.

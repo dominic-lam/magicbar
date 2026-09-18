@@ -21,7 +21,7 @@ triaged in `docs/claude/debriefs/2026-09-08-design-review.md`.
 **The sleep reminder was removed 2026-09-09** — it could not be delivered while the Mac is
 sleeping, measured twice (see `ARCHITECTURE.md`). The daily reminder now carries a drain
 estimate ("about three days left") instead. **The daily reminder fired for the first time on
-2026-09-17 at 23:00**, carrying "about 33 hours left"; whether the banner was seen is unconfirmed.
+2026-09-17 at 23:00**, carrying "about 33 hours left", and the user confirmed seeing it.
 The estimate was reworked 2026-09-13 — one rate across every run between charges, quiet time
 counted, a 24-hour floor.
 

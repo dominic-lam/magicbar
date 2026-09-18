@@ -224,7 +224,7 @@ Open in `TODO.md` — do not run it against the installed app until fixed.
 and the audio device are both already off by the time the app is told, measured twice — and
 delivering it at wake instead lands on the one moment a Magic Mouse cannot be charged. The
 daily reminder at a chosen hour is now the only reminder tied to a moment. It first fired on
-2026-09-17 at 23:00 with the estimate in it; whether the banner was seen is unconfirmed.
+2026-09-17 at 23:00 with the estimate in it, and the user confirmed seeing it.
 
 **The drain estimate was reworked 2026-09-13.** The rate survives a charge, quiet time counts,
 and nothing shows under 24 hours of history. `--check-estimate` covers it with synthetic cases

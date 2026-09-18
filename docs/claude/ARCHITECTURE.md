@@ -106,8 +106,8 @@ One notification answers *when* rather than *what*, and it does not go through t
 the level has not changed, the opportunity has. It fires only if something is below the warn
 level, and it neither consumes nor is suppressed by the ordinary cadence.
 
-- **Daily, at a chosen hour.** *First seen firing 2026-09-17 23:00:01, carrying the estimate;
-  whether the banner was seen is unconfirmed.* Checked on the ordinary poll against the wall clock rather than
+- **Daily, at a chosen hour.** *First seen firing 2026-09-17 23:00:01, carrying the estimate, and
+  seen by the user.* Checked on the ordinary poll against the wall clock rather than
   by its own timer: a timer that must survive sleep, clock changes and time zones is a whole
   mechanism, where a comparison is correct by construction. Fires once per day, and carries the
   drain estimate so it says something the menu bar does not already say.
