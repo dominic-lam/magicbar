@@ -47,15 +47,15 @@ Security. The release notes carry that instruction; do not quietly drop it.
 
 ## NEXT SESSION
 
-- [ ] **Score the first recorded charge, then let the mouse run down from full without a top-up.**
-      The Magic Mouse went on the cable at 4% at 14:09 on 2026-09-18 and read 69% at 16:00, still
-      charging, with "about 1 hr 2 min to full" showing. The app has recorded it from 50% up
-      (`charges` in the saved `drainHistory`); 4% → 49% is in
-      `docs/reference/charge-curve-2026-09-18.txt`. Replay what the estimate said at each percent
-      against when 100% actually arrived, append 50% → 100% to that file, and confirm the taper:
-      steps were 1.55 min per 1% up to 49% and 2.5–3 min by 66–69%. The user agreed on 2026-09-18
-      to run the next discharge from full with no top-ups, which is the only way 100% → 41% is ever
-      recorded.
+- [ ] **Let the mouse run down from full without a top-up, then score the second charge.** The
+      first charge was scored on 2026-09-18: 4% at 14:09 to 100% at 17:40, 3 h 31 min. The
+      estimate was badly optimistic early — "54 min" at 55% against a true 131 — and within a minute
+      from 95% up, exactly the first-charge behaviour the design expects, because the taper had
+      never been seen: 1.6 min per 1% at 50–60%, 2.4 at 60–70%, 3.2–3.3 from 70% up. The per-level
+      table now holds 50–99%; 4–49% exists only in `docs/reference/charge-curve-2026-09-18.txt`,
+      so on the next charge those levels fall back to the overall median (about 3 min) and will
+      read pessimistic where the truth is about 1.55. The user agreed on 2026-09-18 to run the
+      next discharge from full with no top-ups, which is the only way 100% → 41% is ever recorded.
 - [ ] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
       `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
       Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
