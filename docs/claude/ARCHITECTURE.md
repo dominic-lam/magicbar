@@ -335,7 +335,26 @@ a Magic Mouse cannot be used while charging — so the curve belongs to the batt
 charge has no data for the top and reads as a straight line: on 2026-09-18 the steps were 1.55
 minutes per percent from 4% to 49% and 2.5–3 by 66–69%, and the estimate hovered near one hour for
 half an hour as the taper arrived. To the minute, unlike the drain phrases, because it is being
-watched against the clock. Unscored at the time of writing: the mouse was at 69%.
+watched against the clock.
+
+**The first charge, scored.** 4% at 14:09 to 100% at 17:40 on 2026-09-18, 3 h 31 min. Minutes per
+percent: 1.55 to 50%, 1.6 at 50–60%, 2.4 at 60–70%, 3.2–3.3 from 70% up.
+
+| At | Said | Took | Off |
+|---|---|---|---|
+| 55% | 54 min | 131 min | −77 |
+| 65% | 70 min | 112 min | −42 |
+| 75% | 50 min | 82 min | −32 |
+| 85% | 35 min | 50 min | −15 |
+| 90% | 24 min | 33 min | −9 |
+| 95% and up | — | — | within a minute |
+
+Every miss is the taper not yet seen, which is the design's stated first-charge cost — larger
+than expected, because the second half of this charge ran at half the speed of the first. The
+app began recording at 50%; the 4% → 50% readings were recovered from the system log and loaded
+into `charges` afterwards by `docs/reference/backfill-charge-2026-09-18.sh`, so the per-level
+table now covers 4–99%. Replayed on that record it returns the charge it learned from to the
+minute, which proves the arithmetic and nothing about repeatability. The second charge is the test.
 
 ---
 

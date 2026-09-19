@@ -56,8 +56,9 @@ recorded change. Detail in `ARCHITECTURE.md`.
 "About 1 hr 3 min to full" while on the cable. Charges are recorded as their own runs (the last
 ten kept), and each remaining percent costs the median it cost on earlier charges, falling back
 to the median of all steps for a level never seen — so the first charge reads as a straight line
-and runs optimistic, and later ones know the taper. To the minute, unlike the drain phrases. Not
-yet scored against a completed charge.
+and runs optimistic, and later ones know the taper. To the minute, unlike the drain phrases. On
+the first charge (2026-09-18) it ran up to 77 minutes short until the taper had been seen, and
+was exact from 95%; the second charge is the real test.
 
 ### Sleep reminder — built and removed, 2026-09-09
 

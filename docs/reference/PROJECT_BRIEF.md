@@ -29,7 +29,8 @@ counted, a 24-hour floor.
 the first complete real run and found smooth but 14 hours off on average, because daily use
 varied sixfold; no alternative did better. So a second line now shows hours of use left, and a
 device on the cable shows time to full, learned per level from recorded charges. The first
-recorded charge was still under way at the end of that session.
+charge (4% → 100%, 3 h 31 min) read up to 77 minutes short until the taper had been seen; its
+whole curve is now in the app's record, and the second charge is the test.
 
 **Distribution works.** Open source only, no paid developer account. GitHub Actions build the
 app on every push and publish an ad-hoc-signed zip on a `v*` tag. `v1.2.0` was published

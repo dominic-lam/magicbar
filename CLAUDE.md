@@ -35,8 +35,9 @@ Rewritten from a bash implementation on 2026-09-08; that version is preserved at
   later model can be judged against the same baseline
 - **docs/reference/estimate-backtest/** — the first complete real run (41% → 4%) and the scripts
   that scored eight candidate models against it on 2026-09-18
-- **docs/reference/charge-curve-2026-09-18.txt** — the first charge, 4% → 49%, recovered from the
-  system log before the app recorded charges
+- **docs/reference/charge-curve-2026-09-18.txt** — the first charge, 4% → 100%: the first half
+  recovered from the system log, the rest recorded by the app. `backfill-charge-2026-09-18.sh`
+  beside it is the one-off that loaded the first half into the app's saved history.
 - **README.md** — for general users: plain language, no terminal commands
 - **docs/DEVELOPMENT.md** — build from source, terminal troubleshooting, diagnostic arguments
 - **CHANGELOG.md** — user-facing version history
