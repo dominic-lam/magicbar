@@ -316,7 +316,7 @@ extension DrainHistory {
 
     private static let defaultsKey = "drainHistory"
 
-    static func load(from defaults: UserDefaults = .standard) -> DrainHistory {
+    static func load(from defaults: UserDefaults) -> DrainHistory {
         guard let data = defaults.data(forKey: defaultsKey),
               let decoded = try? JSONDecoder().decode(DrainHistory.self, from: data) else {
             return DrainHistory()
@@ -324,7 +324,7 @@ extension DrainHistory {
         return decoded
     }
 
-    func save(to defaults: UserDefaults = .standard) {
+    func save(to defaults: UserDefaults) {
         guard let data = try? JSONEncoder().encode(self) else { return }
         defaults.set(data, forKey: Self.defaultsKey)
     }

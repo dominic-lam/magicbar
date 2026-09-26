@@ -36,8 +36,8 @@ whole curve is now in the app's record, and the second charge is the test.
 app on every push and publish an ad-hoc-signed zip on a `v*` tag. `v1.2.0` was published
 2026-09-13 and verified by download: checksum, version, signature, no `get-task-allow`.
 
-**The diagnostics write to real app data** (found 2026-09-12) — see `TODO.md` before running
-`--dump-retention`.
+**The diagnostics work on a copy of the saved data** (fixed 2026-09-25). Any `--` argument reads
+the real history and writes only to `com.dominic-lam.magicbar.diagnostics`.
 
 ## Runtime flow
 

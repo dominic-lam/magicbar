@@ -55,7 +55,7 @@ Security. The release notes carry that instruction; do not quietly drop it.
       predicted the charge it learned from. When the mouse is next plugged in, replay the estimates
       against the real finish the same way: `defaults export`, then `DrainHistory.swift` compiled
       on its own.
-- [ ] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
+- [x] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
       `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
       Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
       `UserDefaults.standard`. `v1.2.0` shipped with this open; `docs/DEVELOPMENT.md` warns about

@@ -15,12 +15,12 @@ final class BatteryStore: ObservableObject {
     /// Below this, a device takes over the menu bar with its own icon and a level bar.
     /// Above it for every device, the menu bar is just the idle glyph.
     @Published var alertThreshold: Int {
-        didSet { UserDefaults.standard.set(alertThreshold, forKey: "alertThreshold") }
+        didSet { UserDefaults.app.set(alertThreshold, forKey: "alertThreshold") }
     }
 
     /// Below this, every further percent lost produces a notification.
     @Published var nagThreshold: Int {
-        didSet { UserDefaults.standard.set(nagThreshold, forKey: "nagThreshold") }
+        didSet { UserDefaults.app.set(nagThreshold, forKey: "nagThreshold") }
     }
 
     /// Mirrors the real registration rather than a remembered preference: the setter asks
@@ -68,49 +68,49 @@ final class BatteryStore: ObservableObject {
     /// problems, and a setting called after an impairment labels the reader rather than the
     /// feature, so anyone who would benefit has to identify themselves to find it.
     @Published var boldAlerts: Bool {
-        didSet { UserDefaults.standard.set(boldAlerts, forKey: "boldAlerts") }
+        didSet { UserDefaults.app.set(boldAlerts, forKey: "boldAlerts") }
     }
 
     @Published var menuBarVisibility: MenuBarVisibility {
-        didSet { UserDefaults.standard.set(menuBarVisibility.rawValue, forKey: "menuBarVisibility") }
+        didSet { UserDefaults.app.set(menuBarVisibility.rawValue, forKey: "menuBarVisibility") }
     }
 
     /// The master switch. Off means the app watches and shows but never interrupts.
     @Published var notificationsEnabled: Bool {
-        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+        didSet { UserDefaults.app.set(notificationsEnabled, forKey: "notificationsEnabled") }
     }
 
     @Published var coarseEnabled: Bool {
-        didSet { UserDefaults.standard.set(coarseEnabled, forKey: "coarseEnabled") }
+        didSet { UserDefaults.app.set(coarseEnabled, forKey: "coarseEnabled") }
     }
     @Published var coarseLevel: Level {
-        didSet { UserDefaults.standard.set(coarseLevel.rawValue, forKey: "coarseLevel") }
+        didSet { UserDefaults.app.set(coarseLevel.rawValue, forKey: "coarseLevel") }
     }
     @Published var fineEnabled: Bool {
-        didSet { UserDefaults.standard.set(fineEnabled, forKey: "fineEnabled") }
+        didSet { UserDefaults.app.set(fineEnabled, forKey: "fineEnabled") }
     }
     @Published var fineLevel: Level {
-        didSet { UserDefaults.standard.set(fineLevel.rawValue, forKey: "fineLevel") }
+        didSet { UserDefaults.app.set(fineLevel.rawValue, forKey: "fineLevel") }
     }
 
     /// A daily check at a chosen hour. The scheduled version of the same idea, for the evenings
     /// the machine never sleeps.
     @Published var eveningReminderEnabled: Bool {
-        didSet { UserDefaults.standard.set(eveningReminderEnabled, forKey: "eveningReminderEnabled") }
+        didSet { UserDefaults.app.set(eveningReminderEnabled, forKey: "eveningReminderEnabled") }
     }
     @Published var eveningReminderHour: Int {
-        didSet { UserDefaults.standard.set(eveningReminderHour, forKey: "eveningReminderHour") }
+        didSet { UserDefaults.app.set(eveningReminderHour, forKey: "eveningReminderHour") }
     }
 
     /// Which macOS alert sound a notification plays. "Default" means the system default.
     @Published var alertSound: String {
-        didSet { UserDefaults.standard.set(alertSound, forKey: "alertSound") }
+        didSet { UserDefaults.app.set(alertSound, forKey: "alertSound") }
     }
 
     /// Unlocks the controls for firing an arbitrary alert. Off by default because the only
     /// reason to reach for them is to test the app, not to use it.
     @Published var developerMode: Bool {
-        didSet { UserDefaults.standard.set(developerMode, forKey: "developerMode") }
+        didSet { UserDefaults.app.set(developerMode, forKey: "developerMode") }
     }
 
     /// Developer-mode dials. Not persisted: they describe one throwaway test, and carrying
@@ -161,7 +161,7 @@ final class BatteryStore: ObservableObject {
 
     /// Timestamped readings behind the "about three days left" estimate. Persisted, because
     /// the whole point is a series longer than one launch.
-    private var drain = DrainHistory.load()
+    private var drain = DrainHistory.load(from: .app)
     private var coalesceTask: Task<Void, Never>?
     private let notifier = Notifier()
 
@@ -190,7 +190,7 @@ final class BatteryStore: ObservableObject {
     private let marksDefaultsKey = "lowWaterMarks"
 
     init() {
-        let defaults = UserDefaults.standard
+        let defaults = UserDefaults.app
         // `integer(forKey:)` returns 0 for an absent key, which would mean "never alert".
         // Register defaults so a first run behaves like the documented 20 and 10.
         defaults.register(defaults: ["alertThreshold": 20, "nagThreshold": 10])
@@ -363,7 +363,7 @@ final class BatteryStore: ObservableObject {
         // history the rate is built from.
         if drain.forgetUnseen() { changed = true }
         if changed {
-            drain.save()
+            drain.save(to: .app)
             NSLog("%@", "[magicbar] drain history: \(drain.sampleCounts)")
             // Both estimates at every recorded change, so they can be judged against what
             // happened next without anyone having had the popover open at the time.
@@ -525,7 +525,7 @@ final class BatteryStore: ObservableObject {
     }
 
     private func persistMarks() {
-        UserDefaults.standard.set(lowWaterMarks, forKey: marksDefaultsKey)
+        UserDefaults.app.set(lowWaterMarks, forKey: marksDefaultsKey)
     }
 
     /// How alarming a reading is, given the current thresholds. Everything that expresses

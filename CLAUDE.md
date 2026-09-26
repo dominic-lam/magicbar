@@ -217,9 +217,10 @@ GitHub on 2026-09-10. `v1.2.0` was released 2026-09-13 and verified by download.
 launch, daily, and on "Check now". It never downloads or installs; installing was declined (see
 `FEATURES.md`). Keep `MARKETING_VERSION` in step with the next tag.
 
-**The diagnostics are not isolated from real data.** They build a real `BatteryStore` on
-`UserDefaults.standard`; `--dump-retention` corrupted the real drain history on 2026-09-12.
-Open in `TODO.md` — do not run it against the installed app until fixed.
+**The diagnostics work on a copy of the saved data** since 2026-09-25. Any `--` launch argument
+switches `UserDefaults.app` to a fresh copy in `com.dominic-lam.magicbar.diagnostics`, after
+`--dump-retention` corrupted the real drain history on 2026-09-12. Route every new read or write
+through `UserDefaults.app`, never `.standard`.
 
 **The sleep reminder was removed.** It could not be delivered as the Mac sleeps — the display
 and the audio device are both already off by the time the app is told, measured twice — and
@@ -236,6 +237,6 @@ It was backtested on the first complete real run against seven alternatives, And
 averaging included, and none beat it by more than about a tenth: the error is a sixfold swing in daily
 use, not the fit. "Hours of use left" now shows beside it at every level, at the user's request,
 so the two can be judged over several cycles; a device on the cable shows time to full, learned
-per level from recorded charges. **To read the saved history, use `defaults export` and replay it
-through `DrainHistory.swift` compiled on its own** — never a `--dump-*` argument, while the
-diagnostics bug is open.
+per level from recorded charges. **To read the saved history, `--dump-estimate` is safe again**; to
+replay it through a different model, `defaults export` it and compile `DrainHistory.swift` on its
+own.

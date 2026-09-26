@@ -32,6 +32,28 @@ struct MagicbarApp: App {
     }
 }
 
+extension UserDefaults {
+    /// Where the settings, the alert marks and the battery history are kept.
+    ///
+    /// `.standard` for a normal launch. A launch carrying any `--` argument is a diagnostic or a
+    /// simulation, and works on a fresh copy of the saved data in a separate domain instead: it
+    /// reads everything the real app has recorded and writes none of it back. On 2026-09-12
+    /// `--dump-retention` wrote simulated devices into the real drain history and deleted the
+    /// keyboard's. Matching the prefix rather than a list of arguments means a diagnostic added
+    /// later is isolated without anyone remembering to opt it in.
+    static let app: UserDefaults = {
+        guard ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("--") }) else {
+            return .standard
+        }
+        let domain = "com.dominic-lam.magicbar.diagnostics"
+        let copy = UserDefaults(suiteName: domain)!
+        let real = UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "") ?? [:]
+        copy.setPersistentDomain(real, forName: domain)
+        NSLog("%@", "[magicbar] diagnostic launch: working on a copy of the saved data in \(domain)")
+        return copy
+    }()
+}
+
 /// Handles the diagnostic launch arguments.
 ///
 /// These exist because the app is often built and driven from a terminal with nobody
@@ -142,7 +164,7 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             let store = BatteryStore()
             store.refresh()
             print(store.describeDrain())
-            UserDefaults.standard.synchronize()
+            UserDefaults.app.synchronize()
             exit(0)
         }
 
@@ -179,10 +201,10 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
                 NSLog("[magicbar] device name=\(device.name) pct=\(device.percent) id=\(device.id) productID=\(device.productID.map(String.init) ?? "nil") symbol=\(device.symbolCandidates.first ?? "none")")
                 print("\(device.name)\t\(device.percent)\t\(device.productID.map(String.init) ?? "-")\t\(device.id)")
             }
-            // UserDefaults writes are asynchronous, and exit(0) can outrun them — which made
-            // a scripted sequence of these probes look stateless and reported a working
-            // notification cadence as broken.
-            UserDefaults.standard.synchronize()
+            // UserDefaults writes are asynchronous, and exit(0) can outrun them. Flushed so what
+            // the probe wrote can be read back with `defaults read`. Each diagnostic launch
+            // starts from a fresh copy, so probes no longer carry state from one to the next.
+            UserDefaults.app.synchronize()
             // Deliberately exits before the notification centre is ever touched, so this
             // path stays usable from the bare executable inside the bundle.
             exit(0)

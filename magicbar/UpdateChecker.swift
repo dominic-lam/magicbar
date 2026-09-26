@@ -23,7 +23,7 @@ final class UpdateChecker: ObservableObject {
 
     @Published var isEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(isEnabled, forKey: "checkForUpdates")
+            UserDefaults.app.set(isEnabled, forKey: "checkForUpdates")
             if isEnabled { Task { await check() } } else { available = nil }
         }
     }
@@ -41,8 +41,8 @@ final class UpdateChecker: ObservableObject {
     private var clearStatusTask: Task<Void, Never>?
 
     init() {
-        UserDefaults.standard.register(defaults: ["checkForUpdates": true])
-        isEnabled = UserDefaults.standard.bool(forKey: "checkForUpdates")
+        UserDefaults.app.register(defaults: ["checkForUpdates": true])
+        isEnabled = UserDefaults.app.bool(forKey: "checkForUpdates")
 
         let arguments = ProcessInfo.processInfo.arguments
         // Shows the notice without touching the network, so the footer can be checked and

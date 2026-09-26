@@ -523,9 +523,16 @@ not `@Published`: it changes every 5 seconds, and publishing it would recompose 
 image on every tick — the cost the `fresh != devices` check in `refresh()` exists to avoid. The
 popover re-reads it through a one-second `TimelineView`, only while open.
 
-**The diagnostics are not isolated from real data** (found 2026-09-12). They construct a real
-`BatteryStore` on `UserDefaults.standard`, so `--dump-retention` wrote simulated series into the
-real `drainHistory` and dropped a real device's series. Open in `TODO.md`.
+**The diagnostics work on a copy of the saved data** (found 2026-09-12, fixed 2026-09-25). They
+constructed a real `BatteryStore` on `UserDefaults.standard`, so `--dump-retention` wrote simulated
+series into the real `drainHistory` and dropped a real device's series. Every read and write now
+goes through `UserDefaults.app`: `.standard` for a normal launch, and for a launch with any `--`
+argument a fresh copy of the real domain in `com.dominic-lam.magicbar.diagnostics`. It matches the
+prefix rather than a list, so a diagnostic added later cannot forget to opt in. `DrainHistory.load`
+and `save` take their defaults with no default value, so the file still compiles on its own for
+replays and no caller reaches `.standard` by omission. Verified by exporting the real domain
+before and after `--dump-retention`, `--dump-devices --simulate "617:9,620:62"` and
+`--dump-estimate`: identical, with the simulated `617` and `620` in the copy instead.
 
 ---
 

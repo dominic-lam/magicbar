@@ -84,11 +84,12 @@ but the menu bar is full; macOS hides overflow silently.
 Pass these to the binary directly, e.g.
 `/Applications/magicbar.app/Contents/MacOS/magicbar --dump-devices`.
 
-**They share the real app's saved data.** Each builds a real `BatteryStore`, so a run can write
-into the settings and drain history the installed app uses. `--dump-retention` is the proven
-case: on 2026-09-12 it left simulated devices in the drain history and deleted a real one's.
-Until that is fixed, avoid it — and anything with `--simulate` — on a machine whose history
-you care about.
+**They work on a copy of the saved data.** Any launch with a `--` argument copies the installed
+app's settings and battery history into a separate domain, `com.dominic-lam.magicbar.diagnostics`,
+and reads and writes only that. The copy is refreshed at every such launch, so a diagnostic sees
+the real history but cannot change it, and one run carries no state into the next. Settings
+changed in the popover of a `--simulate` launch are not kept. To see what a run wrote:
+`defaults read com.dominic-lam.magicbar.diagnostics`.
 
 | Argument | Effect |
 |---|---|
