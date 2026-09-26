@@ -98,7 +98,7 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             func show(_ label: String, _ spec: String) {
                 SimulatedReadings.parseLaunchArguments(["x", "--simulate", spec])
                 store.refresh()
-                let listed = store.devices.map { "\($0.shortName) \($0.percent)%\($0.isStale ? " [remembered]" : "")" }
+                let listed = store.devices.map { "\($0.displayName) \($0.percent)%\($0.isStale ? " [remembered]" : "")" }
                 print("\(label.padding(toLength: 34, withPad: " ", startingAt: 0))\(listed.joined(separator: ", "))")
             }
             show("healthy mouse + keyboard", "617:61,620:61")
@@ -196,7 +196,7 @@ final class MagicbarAppDelegate: NSObject, NSApplicationDelegate {
             // terminal instead of by squinting at a screenshot.
             let store = BatteryStore()
             let chosen = store.menuBarDevice
-            print("menu bar: \(chosen.map { "\($0.shortName) \($0.percent)%\($0.isCharging ? " charging" : "")" } ?? "idle glyph")")
+            print("menu bar: \(chosen.map { "\($0.displayName) \($0.percent)%\($0.isCharging ? " charging" : "")" } ?? "idle glyph")")
             for device in BatteryReader.read() {
                 NSLog("[magicbar] device name=\(device.name) pct=\(device.percent) id=\(device.id) productID=\(device.productID.map(String.init) ?? "nil") symbol=\(device.symbolCandidates.first ?? "none")")
                 print("\(device.name)\t\(device.percent)\t\(device.productID.map(String.init) ?? "-")\t\(device.id)")

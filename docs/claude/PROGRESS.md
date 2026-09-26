@@ -54,6 +54,11 @@ Newest first, directly below the marker. Three-line format, one entry per sessio
 
 <!-- Append new entries here -->
 
+## 2026-09-25 (Session 9 — the diagnostics isolated, and two of a kind told apart)
+**Completed:** Made every launch with a `--` argument work on a fresh copy of the saved data (`4a9bc78`), proven by exporting the real domain before and after the diagnostic that deleted the keyboard's history on 2026-09-12 — identical, with the simulated devices in the copy; then made two devices of the same kind show their full names so the popover and alerts can tell them apart, checked in five simulated mixes; both installed. Also found that opening the downloaded `v1.2.0` on this Mac would erase the recorded charge curve, since that version saves only drain runs, and parked the Gatekeeper test at the user's word.
+**In progress:** The second mouse run, untouched since 100%, read 62% on 2026-09-25.
+**Next session should:** Retake the README screenshots with `--simulate`, now safe, and look at a two-mouse popover while one is up.
+
 ## 2026-09-18 (Session 8 — the estimate judged on a full real run, and two new estimates)
 **Completed:** Found the daily reminder's first firing in the log (2026-09-17 23:00, carrying "about 33 hours left"); replayed the saved readings through the app's own estimate code, compiled on its own so no diagnostic touched real data, and showed the clock estimate smooth but slipping its "empty at" by two days over the week; backtested it against seven alternatives on the first complete mouse run (41% → 4%) — windows, trailing rates, time-of-day profiles and Android's step averaging — and none beat it by more than a tenth, because daily use varied sixfold; measured in-use drain by level band and found the bottom 10% about twice as fast as the middle; then added a second drain estimate in hours of use, shown beside the first at every level, and a time-to-full estimate learned per level from recorded charges, both with `--check-estimate` cases, built, installed and seen producing real numbers.
 **In progress:** The diagnostics still write to real app data; the two drain estimates and the charge estimate have each seen one run, so none is judged yet.

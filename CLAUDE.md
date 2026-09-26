@@ -162,6 +162,9 @@ keying on either splits one device into two and loses its alert state on plug-in
 **A disconnected device vanishes from the registry entirely.** Absence is never 0%. The store
 leaves a vanished device's marks untouched rather than treating it as a drain to zero.
 
+**Every name a person reads goes through `Device.displayName`.** It is the family name ("Magic
+Mouse") unless two listed devices share one, and then each shows its full registry name.
+
 **The menu bar label is drawn through AppKit, and the two states differ deliberately.** The
 idle glyph is `isTemplate = true` so the system inverts it for light and dark bars; the alert
 image is `isTemplate = false` so the colour survives. Symbols come back from
@@ -202,7 +205,7 @@ PopoverView.swift      device rows, threshold steppers, login toggle, Quit
 
 ---
 
-## Current State (2026-09-18)
+## Current State (2026-09-26)
 
 Built, installed at `/Applications/magicbar.app`, running, registered as a login item, and
 allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen of their 37

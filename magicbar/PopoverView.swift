@@ -160,7 +160,7 @@ private struct DeviceRow: View {
             HStack(spacing: 6) {
                 Image(systemName: device.symbolCandidates.first ?? "battery.50percent")
                     .foregroundStyle(.secondary)
-                Text(device.shortName)
+                Text(device.displayName)
                     .font(PopoverView.rowFont)
                 if device.isCharging {
                     Image(systemName: "bolt.fill")
@@ -394,7 +394,7 @@ private struct DeveloperControls: View {
         VStack(alignment: .leading, spacing: 10) {
             Picker(selection: $store.testDeviceID) {
                 ForEach(store.devices) { device in
-                    Text(device.shortName).tag(device.id)
+                    Text(device.displayName).tag(device.id)
                 }
             } label: {
                 Text("Device")

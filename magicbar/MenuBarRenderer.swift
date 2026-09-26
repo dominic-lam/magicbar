@@ -60,7 +60,7 @@ enum MenuBarRenderer {
             .applying(.init(paletteColors: [nsColor]))
         let deviceSymbol = symbol(named: device.symbolCandidates,
                                   configuration: configuration,
-                                  description: device.shortName)
+                                  description: device.displayName)
 
         // Monospaced digits, so the item keeps a constant width as the number changes.
         // Proportional digits make the whole right-hand side of the menu bar twitch on
@@ -154,7 +154,7 @@ enum MenuBarRenderer {
 
         image.isTemplate = false
         image.accessibilityDescription =
-            "\(device.shortName), \(device.percent) percent, \(urgency.word)\(device.isCharging ? ", charging" : "")"
+            "\(device.displayName), \(device.percent) percent, \(urgency.word)\(device.isCharging ? ", charging" : "")"
         return image
     }
 
@@ -182,7 +182,7 @@ enum MenuBarRenderer {
             .applying(.init(paletteColors: [ink]))
         let deviceSymbol = symbol(named: device.symbolCandidates,
                                   configuration: inkConfig,
-                                  description: device.shortName)
+                                  description: device.displayName)
 
         let warning: NSImage? = urgency == .critical
             // Outlined, not filled. A filled triangle drawn in one colour loses the
@@ -243,7 +243,7 @@ enum MenuBarRenderer {
 
         image.isTemplate = false
         image.accessibilityDescription =
-            "\(device.shortName), \(device.percent) percent, \(urgency.word)\(device.isCharging ? ", charging" : "")"
+            "\(device.displayName), \(device.percent) percent, \(urgency.word)\(device.isCharging ? ", charging" : "")"
         return image
     }
 
@@ -275,7 +275,7 @@ enum MenuBarRenderer {
         let glyph = symbol(named: device.symbolCandidates,
                            configuration: NSImage.SymbolConfiguration(pointSize: 104 * u, weight: .regular)
                               .applying(.init(paletteColors: [shell])),
-                           description: device.shortName)
+                           description: device.displayName)
         let bolt: NSImage? = charging
             ? symbol(named: ["bolt.fill", "bolt"],
                      configuration: NSImage.SymbolConfiguration(pointSize: 30 * u, weight: .bold)

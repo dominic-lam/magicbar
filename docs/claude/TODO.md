@@ -48,25 +48,19 @@ Security. The release notes carry that instruction; do not quietly drop it.
 ## NEXT SESSION
 
 - [ ] **Let the mouse run down from full without a top-up, then score the second charge.** It
-      left the cable at 100% at 17:40 on 2026-09-18 and read 95% at 23:05. The user agreed that day
-      to no top-ups, the only way 100% → 41% is ever recorded. The first charge (4% → 100%, 3 h
-      31 min) is scored in `ARCHITECTURE.md`, "The charge estimate", and its whole curve is in the
-      app's record, so the next charge should read right from the start — but it has only ever
-      predicted the charge it learned from. When the mouse is next plugged in, replay the estimates
-      against the real finish the same way: `defaults export`, then `DrainHistory.swift` compiled
-      on its own.
-- [x] **Stop the diagnostic launch arguments writing to real app data.** On 2026-09-12
-      `--dump-retention` left simulated series `617` and `620` in `drainHistory` and deleted the
-      Magic Keyboard's real series. The diagnostics build a real `BatteryStore` on
-      `UserDefaults.standard`. `v1.2.0` shipped with this open; `docs/DEVELOPMENT.md` warns about
-      it. Isolate the diagnostics from `UserDefaults.standard`, then drop that warning. Until then,
-      read the history with `defaults export` and replay it through `DrainHistory` compiled on its
-      own, as session 8 did.
-- [ ] **Open the downloaded `v1.2.0` past Gatekeeper.** Read back 2026-09-18: `gh release view
-      v1.2.0` reports published, not a draft, not a prerelease. Already verified 2026-09-13:
-      checksum, version 1.2.0, ad-hoc signature, no `get-task-allow`, `--check-updates` reports no
-      update. Unseen: the Open Anyway step on a downloaded copy, and its footer reading
-      `magicbar 1.2.0`. Needs the user's hands.
+      reached 100% at 17:40 on 2026-09-18 and read 62% at 20:14 on 2026-09-25: one
+      unbroken run, about 5 points a day against the first run's 7.5. At that pace it reaches 30%
+      around 2026-10-01 — rerun the band table then (see "The estimate model"). The user agreed on
+      2026-09-18 to no top-ups, the only way 100% → 41% is ever recorded. When the mouse is next
+      plugged in, replay the charge estimates against the real finish: `--dump-estimate`, or
+      `defaults export` and `DrainHistory.swift` compiled on its own. The first charge is scored in
+      `ARCHITECTURE.md`, "The charge estimate".
+- [ ] **Retake the README screenshots, now that `--simulate` is safe.** Since `4a9bc78`
+      (2026-09-25) a simulated launch works on a copy of the saved data. The popover shot predates
+      the 2026-09-12 layout and the orange and red menu bar labels were never captured — see
+      "Docs & hygiene". While at it, launch with two mice
+      (`--simulate "Home Magic Mouse:30,Work Magic Mouse:50,620:62"`) and look at the popover: the
+      full-name rule has only been checked through `--dump-devices`.
 
 ## Active
 
@@ -127,6 +121,14 @@ Security. The release notes carry that instruction; do not quietly drop it.
 
 ### Launch
 
+- [ ] **Open the downloaded `v1.2.0` past Gatekeeper.** Parked by the user 2026-09-25. Verified
+      2026-09-13: checksum, version, ad-hoc signature, no `get-task-allow`; `gh release view`
+      read back 2026-09-26: published, not a draft or prerelease, zip and checksum attached. Unseen: the Open Anyway step and the footer
+      reading `magicbar 1.2.0`. **Not on this Mac without a settings backup:** `v1.2.0` saves only
+      drain runs to the same `drainHistory` key, so its first save would drop the recorded charge
+      curve (read from its tagged source 2026-09-25). Needs the user's hands.
+      *Next action:* do it before the Reddit post — on the other Mac if magicbar is not
+      installed there, which also makes it a true first-run test.
 - [ ] **Post to Reddit after `v1.2.0`.** Plan and drafts are in `docs/launch/REDDIT.md` —
       gitignored, this machine only. r/macapps first, r/swift days later with a technical angle,
       r/MacOS only if its rules allow. No subreddit rule has been read at the source: Reddit
@@ -135,10 +137,6 @@ Security. The release notes carry that instruction; do not quietly drop it.
       while logged in.
 
 ## Previously active
-
-### Bugs
-
-The diagnostics writing to real app data — see NEXT SESSION.
 
 ### Features
 
@@ -190,6 +188,9 @@ The diagnostics writing to real app data — see NEXT SESSION.
   `log show` returned nothing before 23:00 the previous evening. The earlier "the reminder never
   fired" finding was read while those days were still held, so it probably stands, but the same
   search today could not have confirmed it.
+- **Full names on a clash have only met simulated devices** (2026-09-26). Never two real devices
+  of a kind, and never a live device beside a remembered one of the same kind, which `--simulate`
+  cannot produce.
 - **The charge estimate's first step after a mid-charge launch is short.** The app starts partway
   through a percent and records it as if it had just begun — 15 seconds on 2026-09-18. The median
   ignores one; it would matter only if most charges were watched from a relaunch.

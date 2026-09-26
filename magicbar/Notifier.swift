@@ -87,12 +87,12 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     @discardableResult
     func notifyLowBattery(device: Device, urgency: Urgency, sound: String, isTest: Bool = false) -> Bool {
         guard isBundled, isAuthorized else {
-            NSLog("%@", "[magicbar] suppressed alert for \(device.shortName) at \(device.percent)%: authorized=\(isAuthorized)")
+            NSLog("%@", "[magicbar] suppressed alert for \(device.displayName) at \(device.percent)%: authorized=\(isAuthorized)")
             return false
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "\(device.shortName) \(isTest ? "test alert" : urgency.word)"
+        content.title = "\(device.displayName) \(isTest ? "test alert" : urgency.word)"
         content.body = "\(device.percent)% remaining"
         // Collapses a device's alerts into one expandable stack instead of a column of
         // near-identical rows. A full drain can post ten of these; without grouping the user
@@ -117,7 +117,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             if let error {
                 NSLog("[magicbar] delivery failed: \(error.localizedDescription)")
             } else {
-                NSLog("%@", "[magicbar] notified \(device.shortName) at \(device.percent)% test=\(isTest)")
+                NSLog("%@", "[magicbar] notified \(device.displayName) at \(device.percent)% test=\(isTest)")
             }
         }
         return true
@@ -143,7 +143,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         guard isBundled, isAuthorized else { return false }
 
         let content = UNMutableNotificationContent()
-        content.title = "\(device.shortName) is at \(device.percent)%"
+        content.title = "\(device.displayName) is at \(device.percent)%"
         content.body = reason
         content.threadIdentifier = device.id
         content.sound = soundFor(sound)

@@ -69,17 +69,29 @@ struct Device: Identifiable, Equatable {
         return ["battery.50percent", "questionmark.circle"]
     }
 
-    /// A short label for notifications: "Magic Mouse" rather than "Dominic's Magic Mouse".
+    /// "Magic Mouse" rather than "Dominic's Magic Mouse".
     ///
     /// The registry prefixes the owner's name, which reads oddly in an alert addressed to
     /// that same owner. Matches on the family word rather than the possessive, precisely
     /// because the apostrophe character varies between devices.
-    var shortName: String {
+    var familyName: String {
         for family in ["Magic Keyboard", "Magic Mouse", "Magic Trackpad"] where name.contains(family) {
             return family
         }
         return name
     }
+
+    /// Set by `BatteryStore.refresh` when another listed device has the same family name.
+    var showsFullName = false
+
+    /// The name everywhere a person reads one: the popover, notifications, the menu bar.
+    ///
+    /// The family name, unless two devices share it. Two Magic Mice would otherwise both read
+    /// "Magic Mouse", and an alert would not say which one is dying — so then each shows its
+    /// full registry name, "Home Magic Mouse" and "Work Magic Mouse". Two still called
+    /// "Dominic's Magic Mouse" stay identical: only renaming one in Bluetooth settings fixes
+    /// that, and a made-up "Mouse 2" would match nothing the owner has ever seen.
+    var displayName: String { showsFullName ? name : familyName }
 }
 
 /// How alarming a reading is.

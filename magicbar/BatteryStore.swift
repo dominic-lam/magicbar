@@ -342,6 +342,12 @@ final class BatteryStore: ObservableObject {
                                 isCharging: false, statusFlags: 0, productID: stale.productID,
                                 lastSeen: remembered.lastSeen, isStale: true))
         }
+        // After the remembered devices are back in, so a live mouse and a sleeping one of the
+        // same kind are told apart too.
+        let familyCounts = Dictionary(fresh.map { ($0.familyName, 1) }, uniquingKeysWith: +)
+        for i in fresh.indices {
+            fresh[i].showsFullName = familyCounts[fresh[i].familyName, default: 0] > 1
+        }
         fresh.sort { $0.percent < $1.percent }
         // Publishing an identical list still fires objectWillChange, which recomposes the
         // menu bar image every 5 seconds forever. `Device` is Equatable precisely so this
@@ -371,7 +377,7 @@ final class BatteryStore: ObservableObject {
                 let says = device.isCharging
                     ? chargeEstimate(for: device) ?? "none"
                     : "\(estimate(for: device) ?? "none") | \(useEstimate(for: device) ?? "none")"
-                NSLog("%@", "[magicbar] estimates for \(device.shortName) at \(device.percent)%: \(says)")
+                NSLog("%@", "[magicbar] estimates for \(device.displayName) at \(device.percent)%: \(says)")
             }
         }
 
@@ -409,7 +415,7 @@ final class BatteryStore: ObservableObject {
             // Only a device being read right now gets a "now" point and a phrase.
             let live = devices.first(where: { $0.id == id && !$0.isStale && !$0.isCharging })
             let fit = drain.fit(id: id, percent: live?.percent)
-            lines.append("\(devices.first(where: { $0.id == id })?.shortName ?? id) [\(id)]")
+            lines.append("\(devices.first(where: { $0.id == id })?.displayName ?? id) [\(id)]")
             lines.append("  fit:     \(fit.points) points in \(fit.segments) segment(s) over "
                          + "\(String(format: "%.1f", fit.span / 3600))h "
                          + "(needs \(DrainHistory.minimumSamples) over \(Int(DrainHistory.minimumSpan / 3600))h)")
@@ -518,7 +524,7 @@ final class BatteryStore: ObservableObject {
         // The estimate is the whole reason this reminder is worth reading: without it the
         // message repeats a number the user can already see in the menu bar.
         let reason = estimate(for: device).map { "\($0). Charge it tonight" } ?? "Charge it tonight"
-        NSLog("%@", "[magicbar] evening reminder for \(device.shortName) at \(device.percent)% — \(reason)")
+        NSLog("%@", "[magicbar] evening reminder for \(device.displayName) at \(device.percent)% — \(reason)")
         notifier.notifyChargeReminder(device: device, urgency: urgency(for: device.percent),
                                       sound: alertSound,
                                       reason: reason)

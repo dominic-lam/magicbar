@@ -17,6 +17,11 @@ Internal session history is in `docs/claude/PROGRESS.md`.
   takes on your own charges, so from the second charge on it knows that the last stretch is
   slower. The first charge reads a little optimistic.
 
+- **Two devices of the same kind are told apart.** magicbar shows "Magic Mouse" rather than
+  "Dominic's Magic Mouse". With two mice, both rows used to say "Magic Mouse" and an alert could
+  not tell you which one was low. Now each shows its full name from Bluetooth settings, such as
+  "Home Magic Mouse" and "Work Magic Mouse", but only when two would otherwise look the same.
+
 ### Changed
 - **The battery history is no longer trimmed.** magicbar used to keep the last 200 readings per
   device — a few weeks — and quietly drop the oldest. It now keeps them all, so the record spans

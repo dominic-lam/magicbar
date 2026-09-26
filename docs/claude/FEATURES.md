@@ -73,6 +73,15 @@ measurements are kept in `ARCHITECTURE.md` so it is not attempted again.
 SwiftUI `MenuBarExtra` in window style. Two label states, both drawn as `NSImage` through
 AppKit because SwiftUI cannot colour a menu bar label. Detail in `ARCHITECTURE.md`.
 
+### Full names when two devices would share one — 2026-09-26, unreleased
+
+Everything a person reads says "Magic Mouse" rather than "Dominic's Magic Mouse". With two of the
+same kind that made both rows identical and an alert unable to say which one was dying, so a
+device whose family name is shared by another listed device shows its full registry name
+instead. One of each, the usual case, looks exactly as before. Two still carrying the same
+default name stay identical: only renaming one in Bluetooth settings separates them. Checked
+with simulated devices only; nobody here owns two of a kind.
+
 ### Automatic device discovery — v1.0.0
 
 Every peripheral publishing a battery in the IO registry is picked up and named from the

@@ -56,10 +56,18 @@ the middle one is the one that gets forgotten.
 
 **`Product` is user-editable and its punctuation is inconsistent.** On this machine the
 keyboard uses an ASCII apostrophe and the mouse uses U+2019. Never split it on punctuation and
-never use it for identity.
+never use it for identity. `ioreg -l`'s text output prints the U+2019 name as an empty string;
+read it with `ioreg -a` when checking by hand (2026-09-25, when it passed for a blank name).
 
-Identity is `SerialNumber`, the Bluetooth address, which is stable across reconnects and does
-not collide between two devices of the same model the way a shared product ID would.
+**What a person reads is `displayName`** (2026-09-26). Normally the family name, "Magic Mouse",
+because an alert addressed to the owner reads oddly opening with their own name. When two listed
+devices share a family name, `BatteryStore.refresh` sets `showsFullName` on both and each shows
+its full `Product` instead — otherwise two mice read identically in the popover and an alert
+cannot say which is low. The popover, notifications and the menu bar's accessibility label all
+go through it; never show `name` or `familyName` directly.
+
+Identity is `DeviceAddress`, which is stable across reconnects and transports and does not
+collide between two devices of the same model the way a shared product ID would.
 
 ---
 
