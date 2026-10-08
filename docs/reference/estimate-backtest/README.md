@@ -20,3 +20,17 @@ python3 analysis2.py run-2026-09-13-to-18.json   # per-day use, in-use gaps, how
 `naive.py`, `android.py` and `analysis2.py` load their shared helpers from `backtest.py`, so the
 four files must stay in one directory under these names. Findings: `docs/claude/ARCHITECTURE.md`,
 "What the first real run showed".
+
+## Second run — 2026-10-07
+
+`history-2026-10-07.json` is the whole saved `drainHistory` on 2026-10-07, same export: the mouse's
+first run and its second (100% → 4%, 2026-09-18 to 10-07, no top-up), both full charges, and the
+keyboard's 56% → 11%. These scripts stand alone and each takes that file:
+
+```bash
+python3 run2-replay.py       history-2026-10-07.json  # per-day use, bands, the shipped rules replayed hourly
+python3 run2-alternatives.py history-2026-10-07.json  # the shipped clock rule against three simple alternatives
+python3 run2-score.py        history-2026-10-07.json  # the second charge, "half below 10%", and the keyboard
+```
+
+Findings: `docs/claude/ARCHITECTURE.md`, "What the second run showed" and "The charge estimate".

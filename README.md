@@ -107,6 +107,11 @@ or has gone to sleep drops out of the list until it reconnects — click the mou
 If its battery was already low, magicbar keeps showing its last reading, marked "last seen", so
 a low device can't quietly vanish.
 
+**A renamed device still shows its old name**
+macOS passes a new name to magicbar only when the device reconnects. After renaming it in
+**System Settings › Bluetooth**, switch the device off and on again. While a mouse charges on
+its cable, macOS reports it as plain "Magic Mouse"; its own name returns when you unplug it.
+
 **It doesn't start when I log in**
 Open magicbar, turn **Open at login** off and on again. You can also check
 **System Settings › General › Login Items**.

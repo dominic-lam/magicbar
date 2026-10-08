@@ -47,14 +47,12 @@ Security. The release notes carry that instruction; do not quietly drop it.
 
 ## NEXT SESSION
 
-- [ ] **Let the mouse run down from full without a top-up, then score the second charge.** It
-      reached 100% at 17:40 on 2026-09-18 and read 62% at 20:14 on 2026-09-25: one
-      unbroken run, about 5 points a day against the first run's 7.5. At that pace it reaches 30%
-      around 2026-10-01 — rerun the band table then (see "The estimate model"). The user agreed on
-      2026-09-18 to no top-ups, the only way 100% → 41% is ever recorded. When the mouse is next
-      plugged in, replay the charge estimates against the real finish: `--dump-estimate`, or
-      `defaults export` and `DrainHistory.swift` compiled on its own. The first charge is scored in
-      `ARCHITECTURE.md`, "The charge estimate".
+- [ ] **Count each percent below 10% as half, in both estimates — the user's decision.** Two
+      runs now agree: in-use hours per percent fell from 1.11 to 0.53 below 10% on the first run
+      and from 0.95 to 0.49 on the second (2026-10-07). Halving would have put the use estimate
+      within half an hour at every reading of the second run's last 10%. The data was put to the
+      user on 2026-10-07; their answer decides whether this is built. Numbers: `ARCHITECTURE.md`,
+      "What the second run showed".
 - [ ] **Retake the README screenshots, now that `--simulate` is safe.** Since `4a9bc78`
       (2026-09-25) a simulated launch works on a copy of the saved data. The popover shot predates
       the 2026-09-12 layout and the orange and red menu bar labels were never captured — see
@@ -89,9 +87,11 @@ Security. The release notes carry that instruction; do not quietly drop it.
 - [ ] **The evening reminder's "already sent today" is not persisted** (`lastEveningReminder`,
       `BatteryStore.swift`). Relaunching after the hour sends that day's reminder again.
       *Next action:* store it in `UserDefaults`, or accept it as harmless.
-- [ ] **Retire the predecessor scripts** per `MIGRATION.md`, once a reboot confirms magicbar
-      starts itself. Blocked on that reboot: the Mac last booted 2026-08-24, before magicbar
-      existed. `com.dominic.mousebattery.plist` is still in `~/Library/LaunchAgents`.
+- [ ] **Retire the predecessor scripts** per `MIGRATION.md`. The reboot is done: the Mac booted
+      2026-10-01 15:54:38 and magicbar started itself 42 seconds later. The old agent came back
+      with it and recorded a 15% alert on 2026-10-05; on 2026-10-06 it was booted out of launchd
+      and its plist moved to `~/bin/com.dominic.mousebattery.plist`, beside the script.
+      *Next action:* delete the leftovers per `MIGRATION.md` steps 3–5, plus that moved plist.
 
 ### The estimate model
 
@@ -103,15 +103,9 @@ Security. The release notes carry that instruction; do not quietly drop it.
       wrong by 14 hours on average, because daily use varied sixfold; seven alternative clock
       models, Android's included, did no better than about a tenth. Findings: `ARCHITECTURE.md`, "What the first real
       run showed". Baseline data and scripts: `docs/reference/estimate-backtest/`.
-      *Next action:* when the next run reaches 30%, rerun the band table (`analysis2.py`) and see
-      whether the fast 30–41% band repeats on a lighter day than the Monday it fell on.
-- [ ] **The drain runs about twice as fast below 10%, and neither estimate knows.** In-use drain
-      was 0.8–0.9 %/h between 10% and 30% and 1.9 %/h below 10%; "about 23 hours left" at 7% was
-      followed by 4% after 45 minutes of use. One run, five gaps. A stopgap — hide or halve the
-      hours below 10% — was offered on 2026-09-18 and the user chose to watch both estimates
-      unaltered first.
-      *Next action:* after a second run reaches single digits, decide between the stopgap and the
-      per-level correction recorded in `FEATURES.md`.
+      *Next action:* two runs are judged (`ARCHITECTURE.md`, "What the second run showed"); the
+      third began at 100% at 21:55 on 2026-10-07. Rerun `run2-score.py` when it reaches 10%, and
+      watch whether 100% → 97% again goes in about an hour.
 - [ ] **`BatteryReader` logs a line every five seconds while anything charges.** It is how the
       4% → 49% charge curve was recovered on 2026-09-18, and it may be why the system log reached
       back only a day. Charges are now recorded in `drainHistory`, so the line has no job left.
@@ -188,9 +182,10 @@ Security. The release notes carry that instruction; do not quietly drop it.
   `log show` returned nothing before 23:00 the previous evening. The earlier "the reminder never
   fired" finding was read while those days were still held, so it probably stands, but the same
   search today could not have confirmed it.
-- **Full names on a clash have only met simulated devices** (2026-09-26). Never two real devices
-  of a kind, and never a live device beside a remembered one of the same kind, which `--simulate`
-  cannot produce.
+- **Full names on a clash have met one real pair, in the log only** (2026-10-07): a second Magic
+  Mouse beside the first on its cable read "Dominic Magic Mouse" and "Magic Mouse". The popover
+  with that pair is unseen, and a live device beside a remembered one of the same kind has never
+  happened, which `--simulate` cannot produce.
 - **The charge estimate's first step after a mid-charge launch is short.** The app starts partway
   through a percent and records it as if it had just begun — 15 seconds on 2026-09-18. The median
   ignores one; it would matter only if most charges were watched from a relaunch.

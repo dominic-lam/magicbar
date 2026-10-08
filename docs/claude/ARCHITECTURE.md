@@ -59,6 +59,14 @@ keyboard uses an ASCII apostrophe and the mouse uses U+2019. Never split it on p
 never use it for identity. `ioreg -l`'s text output prints the U+2019 name as an empty string;
 read it with `ioreg -a` when checking by hand (2026-09-25, when it passed for a blank name).
 
+**`Product` is taken when the device connects, so a rename lags until a reconnect.** On
+2026-10-07 a mouse renamed "Old Magic Mouse" in Bluetooth settings still read "Dominic Magic
+Mouse" in the registry, same address; switching it off and on brought the new name. The app
+re-reads `Product` every poll and caches nothing, so it follows as soon as the registry does.
+Asking Bluetooth for the name instead means `IOBluetooth`, which probably costs every user a
+Bluetooth permission prompt (unchecked) — not worth it for a name. The README tells people to
+switch the device off and on.
+
 **What a person reads is `displayName`** (2026-09-26). Normally the family name, "Magic Mouse",
 because an alert addressed to the owner reads oddly opening with their own name. When two listed
 devices share a family name, `BatteryStore.refresh` sets `showsFullName` on both and each shows
@@ -315,6 +323,37 @@ hours left" at 11%). Data and scripts: `docs/reference/estimate-backtest/`.
   across all steps"; the curve is dealt with inside the fuel gauge, whose job is to make percent
   linear in charge. The effort elsewhere goes into modelling use, not the cell.
 
+### What the second run showed *(2026-10-07)*
+
+Magic Mouse, 100% at 17:49 on 2026-09-18 to 4% at 18:29 on 2026-10-07, no top-up, 105 readings;
+the keyboard's 56% → 11% over the same weeks. Replayed hourly through Python copies of `fit` and
+`useHoursPerPercent`, which match the app's printed rate. Data and scripts:
+`docs/reference/estimate-backtest/`.
+
+- **The clock estimate was smooth, pessimistic, then right.** It said "about 13 days" on 09-19
+  when the truth was about 19, sat at 12–13 days for a week while the truth caught up, and was
+  within a day from 09-28 on. Two causes: the fit pooled the first run's heavier week (7.5 %/day
+  against this run's 4.9), and 100% → 97% fell in one hour, 20 minutes a percent, against about an
+  hour a percent of use mid-run — most likely the gauge settling after a full charge.
+- **Nothing simple beat it.** This run alone counted *up* from 15 to 19 days over four days; the
+  last 7 days rose from 13 to 18; skipping the top 10% read 21 then 26. Daily use ran 2.3–7.7 %/day.
+- **The use estimate jumped once and cannot be scored.** 58 → 74 hours of use overnight on
+  09-22, when the median of few in-use steps flipped; only 26 of 92 drops qualified. Nothing
+  records actual use — see "Measure device use directly" in `FEATURES.md`.
+- **Below 10% repeated: each percent lasts half as long.** In-use hours per percent, 11–30% against
+  below 10%: run 1 1.11 → 0.53, run 2 0.95 → 0.49, ratios 0.48 and 0.52, five or six steps each.
+  At 9% the app said "about 8 hours of use left"; 9% → 4% took 2.7 hours of unbroken use. Counting
+  each percent below 10 as half, the use estimate to 4% would have been within half an hour at every
+  reading of run 2 (2.7 h said at 10% against 3.2 taken), and the clock's mean miss at or below 10%
+  would have fallen from 4.5 to 2.5 hours on run 1 and from 15.4 to 6.7 on run 2 — still long there,
+  because the last 6% went in one afternoon.
+- **The keyboard's clock estimate was optimistic mid-run, then within a day.** 1.81 %/day on
+  average, but 0.3 to 6.0 by day, a far wider swing than the mouse. After a quiet week it said
+  "about 36 days" at 41% on 09-24 — rising from 28 — and would have put 11% two weeks late; from
+  23% on 09-30 it was within a day. Mean miss 3.4 days, biased late by 2.6. The mouse and the
+  keyboard fail the same way in opposite directions: the first days of a run set the line, and a
+  week passes before the rest of the run outweighs them.
+
 ### The use estimate *(2026-09-18)*
 
 "About 84 hours of use left", shown under the clock estimate at every level.
@@ -363,6 +402,10 @@ app began recording at 50%; the 4% → 50% readings were recovered from the syst
 into `charges` afterwards by `docs/reference/backfill-charge-2026-09-18.sh`, so the per-level
 table now covers 4–99%. Replayed on that record it returns the charge it learned from to the
 minute, which proves the arithmetic and nothing about repeatability. The second charge is the test.
+
+**The second charge, scored: repeatable.** 4% at 18:30 to 100% at 21:55 on 2026-10-07, 3 h 25 min
+against the first's 3 h 30 min. Replayed at each of its 96 readings, learning only from the first
+charge: mean miss 2.6 minutes, worst +6 (210 said, 205 taken, at 4%). Nothing to change.
 
 ---
 

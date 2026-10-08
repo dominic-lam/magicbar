@@ -178,6 +178,13 @@ unchecked. Logging active hours would give percent per hour of use directly, and
 pattern at five-second rather than one-percent resolution. It counts any pointing device, so a
 trackpad would muddy it.
 
+*2026-10-06, after the second run (100% → 11%):* the use estimate jumped from 58 to 74 hours
+overnight on 2026-09-22 — only 26 of 92 drops qualified as in use, and their median flipped — and
+it cannot be scored at all, because nothing records actual use. Daily drain swung 2.3–7.7% a day,
+which no clock curve fits away. A second source: `HIDIdleTime` on `IOHIDSystem` in the registry
+(nanoseconds since any input, keyboard included), read from the terminal with no prompt. Whether
+the app can read it unprompted is still unchecked.
+
 ### Battery wear from the drain-rate trend
 
 *Recorded 2026-09-14.* macOS exposes no health reading for these peripherals — no cycle count,
