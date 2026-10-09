@@ -205,7 +205,7 @@ PopoverView.swift      device rows, threshold steppers, login toggle, Quit
 
 ---
 
-## Current State (2026-09-26)
+## Current State (2026-10-07)
 
 Built, installed at `/Applications/magicbar.app`, running, registered as a login item, and
 allowed to post notifications. Reviewed by four reviewers on 2026-09-08; fifteen of their 37
@@ -243,3 +243,8 @@ so the two can be judged over several cycles; a device on the cable shows time t
 per level from recorded charges. **To read the saved history, `--dump-estimate` is safe again**; to
 replay it through a different model, `defaults export` it and compile `DrainHistory.swift` on its
 own.
+
+**Below 10% each percent counts half, in both drain estimates, since 2026-10-07.** Two full runs
+agreed on the ratio (0.48 and 0.52). It is a constant on purpose; `useHoursPerPercent` also
+normalises quick steps below 10%, or the low band is discounted twice. The charge estimate was
+within minutes on its second charge and needs nothing.

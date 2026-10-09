@@ -26,6 +26,10 @@ Internal session history is in `docs/claude/PROGRESS.md`.
 - **The battery history is no longer trimmed.** magicbar used to keep the last 200 readings per
   device — a few weeks — and quietly drop the oldest. It now keeps them all, so the record spans
   several charges and the "days left" estimate can be judged against what actually happened.
+- **The last 10% is no longer treated like the rest.** A Magic Mouse loses its last ten percent
+  about twice as fast as the middle of its charge — measured on two full runs. Both estimates now
+  allow for it, so "hours of use left" stops promising twice the use it can give near empty. Every
+  estimate reads a little shorter as a result, since the last 10% is part of every runway.
 
 ## [1.2.0] — 2026-09-13
 

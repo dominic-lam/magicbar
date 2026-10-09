@@ -82,6 +82,18 @@ struct DrainHistory: Codable {
     /// A device not heard from in this long is forgotten — no longer paired, or in a drawer.
     static let forgetAfter: TimeInterval = 30 * 24 * 3600
 
+    /// Each percent below this lasts `lowWeight` of an ordinary one. Two full runs of the Magic
+    /// Mouse agreed: in-use hours per percent fell from 1.11 to 0.53 below 10%, and from 0.95 to
+    /// 0.49 (2026-09-18, 2026-10-07). Fixed rather than learned, because two runs with five or six
+    /// steps each support a constant, not a table.
+    static let lowBand = 10
+    static let lowWeight = 0.5
+
+    /// The percent left, in ordinary percents: 8% lasts as long as 4% would mid-run.
+    static func effectivePercent(_ percent: Int) -> Double {
+        Double(max(percent - lowBand, 0)) + Double(min(percent, lowBand)) * lowWeight
+    }
+
     /// Records a reading, if it is worth recording. Returns true when the history changed.
     @discardableResult
     mutating func record(id: String, percent: Int, isCharging: Bool, at now: Date = .now) -> Bool {
@@ -199,10 +211,10 @@ struct DrainHistory: Codable {
         return Fit(points: points, segments: used, span: span, rate: rate)
     }
 
-    /// Hours until empty at the fitted rate, or nil when there is no rate.
+    /// Hours until empty at the fitted rate, the last 10% counting half, or nil when there is no rate.
     func hoursRemaining(id: String, percent: Int, now: Date = .now) -> Double? {
         guard let rate = fit(id: id, percent: percent, now: now).rate else { return nil }
-        return Double(percent) / rate
+        return Self.effectivePercent(percent) / rate
     }
 
     /// The estimate as a phrase, or nil. Deliberately vague: the input is a straight line
@@ -276,7 +288,12 @@ struct DrainHistory: Codable {
                 let drop = earlier.percent - later.percent
                 guard drop >= 1 else { continue }
                 let each = later.at.timeIntervalSince(earlier.at) / Double(drop)
-                if each <= Self.useGap { steps.append(contentsOf: Array(repeating: each / 3600, count: drop)) }
+                guard each <= Self.useGap else { continue }
+                // A quick step below 10% is half a percent's worth of use. Counted raw, the 11 such
+                // steps in the first two runs pulled the median from 0.97 to 0.78, and the halving
+                // in `usePhrase` would then count the low band twice.
+                let ordinary = later.percent < Self.lowBand ? each / Self.lowWeight : each
+                steps.append(contentsOf: Array(repeating: ordinary / 3600, count: drop))
             }
         }
         guard steps.count >= Self.minimumUseSteps else { return nil }
@@ -286,7 +303,7 @@ struct DrainHistory: Codable {
     /// The use estimate as a phrase, or nil.
     func usePhrase(id: String, percent: Int) -> String? {
         guard let perPercent = useHoursPerPercent(id: id) else { return nil }
-        let hours = Double(percent) * perPercent
+        let hours = Self.effectivePercent(percent) * perPercent
         return hours < 1 ? "under an hour of use left" : "about \(Int(hours.rounded())) hours of use left"
     }
 }
@@ -398,6 +415,10 @@ extension DrainHistory {
         }
         report("3 sittings a day at 0.8h per 1%, at 33%", sittings, percent: 33, now: 72)
         lines.append("  hours of use per 1%:                     \(sittings.useHoursPerPercent(id: "d").map { String(format: "%.2f", $0) } ?? "nil")")
+
+        // Below 10% each percent counts half: 8% is four ordinary percents, so the steady 4%/day
+        // drain says 24 hours rather than 48, and 0.8 hours per 1% of use says 3 rather than 6.
+        lines.append("at 8%, below 10% counting half:            \(steady.phrase(id: "d", percent: 8, now: at(72)) ?? "nothing") · \(sittings.usePhrase(id: "d", percent: 8) ?? "nothing")")
 
         // A charge that tapers: 1.5 minutes a percent to 80%, then 4. The first time through, the
         // top has never been seen and reads as a straight line; the second time it is known.

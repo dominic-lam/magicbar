@@ -54,6 +54,11 @@ Newest first, directly below the marker. Three-line format, one entry per sessio
 
 <!-- Append new entries here -->
 
+## 2026-10-06 (Session 10 — the second full run judged, and the last 10% fixed)
+**Completed:** Scored the mouse's first unbroken run, 100% to 4% over 19 days, against both drain estimates — smooth but a week slow to settle, with nothing simple doing better — scored the second charge to within minutes, found the keyboard's estimate up to two weeks off mid-run, and, since both runs agreed the last 10% goes twice as fast, made both estimates count it half (`DrainHistory.swift`, built and installed); also stopped the predecessor script after the 2026-10-01 reboot proved magicbar starts itself, and documented that a Bluetooth rename reaches the app only on reconnect.
+**In progress:** The third mouse run began at 100% on 2026-10-07 and is the first under the last-10% fix.
+**Next session should:** Retake the README screenshots with `--simulate`, including a popover with two mice.
+
 ## 2026-09-25 (Session 9 — the diagnostics isolated, and two of a kind told apart)
 **Completed:** Made every launch with a `--` argument work on a fresh copy of the saved data (`4a9bc78`), proven by exporting the real domain before and after the diagnostic that deleted the keyboard's history on 2026-09-12 — identical, with the simulated devices in the copy; then made two devices of the same kind show their full names so the popover and alerts can tell them apart, checked in five simulated mixes; both installed. Also found that opening the downloaded `v1.2.0` on this Mac would erase the recorded charge curve, since that version saves only drain runs, and parked the Gatekeeper test at the user's word.
 **In progress:** The second mouse run, untouched since 100%, read 62% on 2026-09-25.

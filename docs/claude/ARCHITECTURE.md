@@ -354,6 +354,20 @@ the keyboard's 56% → 11% over the same weeks. Replayed hourly through Python c
   keyboard fail the same way in opposite directions: the first days of a run set the line, and a
   week passes before the rest of the run outweighs them.
 
+### The last 10% counts half *(2026-10-07)*
+
+Built on the finding above. `effectivePercent` converts a reading into ordinary percents —
+`lowBand` (10) and below each count `lowWeight` (0.5), so 8% is 4 — and both `hoursRemaining` and
+`usePhrase` multiply by it instead of the raw percent. Every estimate shrinks by five percents'
+worth, about a day for the mouse, because the low band is part of every runway. In
+`useHoursPerPercent` a quick step ending below 10% is divided by `lowWeight` before the median;
+counted raw, the 11 such steps in the first two runs pulled the median from 0.97 to 0.78 and the
+low band would have been discounted twice. The clock fit is left on raw levels: the low band is a
+few points in a run of a hundred. A fixed constant, not the learned per-level table in
+`FEATURES.md` — two runs of five or six steps support one number, not a curve. `--check-estimate`
+covers it ("at 8%": 24 hours, not 48; 3 hours of use, not 6). After install on 2026-10-07 at 100%:
+"about 19 days left" and "about 93 hours of use left"; the run just ended took 19 days to reach 4%.
+
 ### The use estimate *(2026-09-18)*
 
 "About 84 hours of use left", shown under the clock estimate at every level.

@@ -19,7 +19,7 @@ Every feature by status. New ideas go **here**, not in `TODO.md`. Sequencing is 
 | Notification actions (snooze) | Idea | Confirm actions survive from an agent app |
 | Homebrew tap | Idea | Decide whether one extra repo is worth it |
 | Battery wear from the drain-rate trend | Idea | Needs months of kept rates first |
-| Per-level drain correction | Idea | Needs 3–5 recorded cycles to separate battery from habit |
+| Per-level drain correction | Idea | Below 10% shipped as a constant 2026-10-07; the rest needs more runs |
 | Measure device use directly | Idea | Confirm the idle-time call needs no permission |
 
 ---
@@ -79,8 +79,16 @@ Everything a person reads says "Magic Mouse" rather than "Dominic's Magic Mouse"
 same kind that made both rows identical and an alert unable to say which one was dying, so a
 device whose family name is shared by another listed device shows its full registry name
 instead. One of each, the usual case, looks exactly as before. Two still carrying the same
-default name stay identical: only renaming one in Bluetooth settings separates them. Checked
-with simulated devices only; nobody here owns two of a kind.
+default name stay identical: only renaming one in Bluetooth settings separates them, and the
+new name reaches the app only after the device reconnects. Met a real pair on 2026-10-07 — a
+second mouse beside the first on its cable — in the log; the popover with it is unseen.
+
+### Last 10% counts half — 2026-10-07, unreleased
+
+Both drain estimates count each percent below 10% as half an ordinary one, because two full runs
+showed the mouse's last tenth going about twice as fast. "Hours of use left" had promised about
+twice the use it could give near empty. A fixed constant, not a learned table. `CHANGELOG.md`
+§ Unreleased; detail in `ARCHITECTURE.md`, "The last 10% counts half".
 
 ### Automatic device discovery — v1.0.0
 
@@ -169,6 +177,10 @@ long each percent takes relative to the average — learned slowly across cycles
 fast-moving rate — would stop the estimates running optimistic near empty. One run cannot separate
 the battery from the week it happened in: the fast top band fell on the heaviest day. The charge
 estimate already works this way, because a charge is repeatable.
+
+*2026-10-07:* the bottom of it shipped as a constant — each percent below 10% counts half, after
+two runs agreed (`ARCHITECTURE.md`, "The last 10% counts half"). The learned table stays an idea:
+the top band is one sample (100% → 97% in an hour on the second run), and nothing in between bends.
 
 ### Measure device use directly
 

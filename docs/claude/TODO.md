@@ -47,18 +47,17 @@ Security. The release notes carry that instruction; do not quietly drop it.
 
 ## NEXT SESSION
 
-- [ ] **Count each percent below 10% as half, in both estimates — the user's decision.** Two
-      runs now agree: in-use hours per percent fell from 1.11 to 0.53 below 10% on the first run
-      and from 0.95 to 0.49 on the second (2026-10-07). Halving would have put the use estimate
-      within half an hour at every reading of the second run's last 10%. The data was put to the
-      user on 2026-10-07; their answer decides whether this is built. Numbers: `ARCHITECTURE.md`,
-      "What the second run showed".
 - [ ] **Retake the README screenshots, now that `--simulate` is safe.** Since `4a9bc78`
       (2026-09-25) a simulated launch works on a copy of the saved data. The popover shot predates
       the 2026-09-12 layout and the orange and red menu bar labels were never captured — see
-      "Docs & hygiene". While at it, launch with two mice
-      (`--simulate "Home Magic Mouse:30,Work Magic Mouse:50,620:62"`) and look at the popover: the
-      full-name rule has only been checked through `--dump-devices`.
+      "Docs & hygiene". While at it, look at a popover with two mice: simulated
+      (`--simulate "Home Magic Mouse:30,Work Magic Mouse:50,620:62"`), or live now that the user
+      has a second one, "Old Magic Mouse" (address `d0-81-7a-e8-0d-85`, renamed 2026-10-07).
+- [ ] **Ask the user whether to release the unreleased work as 1.3.0.** `CHANGELOG.md`
+      § Unreleased holds the use and charge estimates (the charge one scored to the minute twice),
+      full names for two of a kind, the untrimmed history and the last-10% fix. Releasing means
+      setting `MARKETING_VERSION` (still 1.2.0) and tagging. It also unparks the Gatekeeper test
+      below: a 1.3.0 download saves charges, so opening it on this Mac would not drop the curve.
 
 ## Active
 
@@ -104,14 +103,14 @@ Security. The release notes carry that instruction; do not quietly drop it.
       models, Android's included, did no better than about a tenth. Findings: `ARCHITECTURE.md`, "What the first real
       run showed". Baseline data and scripts: `docs/reference/estimate-backtest/`.
       *Next action:* two runs are judged (`ARCHITECTURE.md`, "What the second run showed"); the
-      third began at 100% at 21:55 on 2026-10-07. Rerun `run2-score.py` when it reaches 10%, and
-      watch whether 100% → 97% again goes in about an hour.
+      third began at 100% at 21:55 on 2026-10-07 and at 4.9%/day reaches 10% around 2026-10-25.
+      Then rerun `run2-score.py`, score the last-10% fix (installed 2026-10-07: "about 19 days
+      left" and "about 93 hours of use left" at 100%) against the real finish, and check whether
+      100% → 97% again went in about an hour.
 - [ ] **`BatteryReader` logs a line every five seconds while anything charges.** It is how the
       4% → 49% charge curve was recovered on 2026-09-18, and it may be why the system log reached
       back only a day. Charges are now recorded in `drainHistory`, so the line has no job left.
       *Next action:* log on change only. Raised with the user 2026-09-18, not yet answered.
-- [ ] **Set `MARKETING_VERSION` to the next tag before releasing.** The installed build carries
-      the two new estimates and still reads 1.2.0, the same as the published release.
 
 ### Launch
 
